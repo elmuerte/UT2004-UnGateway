@@ -3,7 +3,7 @@
 	Telnet client, spawned from GITelnetd
 	Note: windows telnet client should use ANSI not VT100
 	RFC: 318, 513, 764, 854, 855, 857, 858, 859, 884, 930, 1073, 1091, 1116, 1572
-	$Id: GCTelnet.uc,v 1.7 2004/01/02 14:22:40 elmuerte Exp $
+	$Id: GCTelnet.uc,v 1.8 2004/01/02 20:54:01 elmuerte Exp $
 */
 class GCTelnet extends UnGatewayClient;
 
@@ -132,16 +132,36 @@ var protected string TerminalType;
 var protected array<string> PagerBuffer;
 /** current line count for the pager */
 var protected int PagerLineCount;
+/** current offset in the pagers */
+var protected int PagerOffset;
 
 // localization
 var localized string msgUsername, msgPassword, msgLoginFailed, msgTooManuLogins,
 						msgUnknownCommand, msgPagerMore;
+
+/** cursor key movements */
+enum ECursorKey
+{
+	ECK_Up,
+	ECK_Down,
+	ECK_Left,
+	ECK_Right,
+	ECK_PageUp,
+	ECK_PageDown,
+	ECK_End,
+	ECK_Home,
+	ECK_Insert,
+	ECK_Delete,
+};
 
 /** called from defReceiveInput to handle escape codes */
 delegate int OnEscapeCode(int pos, int Count, byte B[255])
 {
 	return 0;
 }
+
+/** called from defProcEscape when a cursor key is used */
+delegate OnCursorKey(ECursorKey Key);
 
 event Accepted()
 {
@@ -224,19 +244,11 @@ function defReceiveInput(int Count, byte B[255])
 		}
 		else if (B[i] == 1) // ^A, begin of line
 		{
-			if (cursorpos[0] > cursorpos[2])
-			{
-				if (bEcho) SendText(Chr(C_ESC)$"["$string(cursorpos[0]-cursorpos[2])$"D");
-				cursorpos[0] = cursorpos[2];
-			}
+			defCursorKey(ECK_Home);
 		}
 		else if (B[i] == 5) // ^E, end of line
 		{
-			if (cursorpos[0] < Len(inbuffer)+cursorpos[2])
-			{
-				if (bEcho) SendText(Chr(C_ESC)$"["$string(Len(inbuffer)-cursorpos[0]+1)$"C");
-				cursorpos[0] = Len(inbuffer)+cursorpos[2];
-			}
+			defCursorKey(ECK_End);
 		}
 		else if (B[i] == 4) // ^D, logout or delete
 		{
@@ -308,32 +320,81 @@ function int defProcEscape(int pos, int Count, byte B[255])
 		switch (B[pos])
 		{
 			case 65:	length++; // A=Up
-						DisplayCommandHistory(1);
+						OnCursorKey(ECK_Up);
 						break;
 			case 66:	length++; // B=Down
-						DisplayCommandHistory(-1);
+						OnCursorKey(ECK_Down);
 						break;
-			case 67:	if (cursorpos[0] < Len(inbuffer)+cursorpos[2]) // C=Right
+			case 67:	length++; // C=Right
+						if (v1 == 0) v1++;
+						while (v1 > 0)
 						{
-							if (v1 == 0) v1++;
-							cursorpos[0] += v1;
-							SendText(Chr(C_ESC)$"["$val1$"C");
+							OnCursorKey(ECK_Right);
+							v1--;
 						}
-						length++;
 						break;
-			case 68:	if (cursorpos[0] > cursorpos[2]) // D=Left
+			case 68:	length++; // D=Left
+						if (v1 == 0) v1++;
+						while (v1 > 0)
 						{
-							if (v1 == 0) v1++;
-							cursorpos[0] -= v1;
-							SendText(Chr(C_ESC)$"["$val1$"D");
+							OnCursorKey(ECK_Left);
+							v1--;
 						}
-						length++;
+						break;
+			case 126:	length++;
+						switch (v1)
+						{
+							case 1: OnCursorKey(ECK_Home); break;
+							case 2: OnCursorKey(ECK_Insert); break;
+							case 3: OnCursorKey(ECK_Delete); break;
+							case 4: OnCursorKey(ECK_End); break;
+							case 5: OnCursorKey(ECK_PageUp); break;
+							case 6: OnCursorKey(ECK_PageDown); break;
+							default: interface.gateway.Logf("[defProcEscape] unknown function key:"@v1@v2, Name, interface.gateway.LOG_DEBUG);
+						}
 						break;
 			default:	interface.gateway.Logf("[defProcEscape] Unhandled escape code:"@B[pos], Name, interface.gateway.LOG_DEBUG);
 		}
 	}
 	bProcEsc = false;
 	return length;
+}
+
+function defCursorKey(ECursorKey key)
+{
+	switch (key)
+	{
+		case ECK_Up:		DisplayCommandHistory(1);
+							break;
+		case ECK_Down:		DisplayCommandHistory(-1);
+							break;
+		case ECK_Left:		if (cursorpos[0] > cursorpos[2])
+							{
+								cursorpos[0] -= 1;
+								SendText(Chr(C_ESC)$"[1D");
+							}
+							break;
+		case ECK_Right:		if (cursorpos[0] < Len(inbuffer)+cursorpos[2])
+							{
+								cursorpos[0] += 1;
+								SendText(Chr(C_ESC)$"[1C");
+							}
+							break;
+		case ECK_End:		if (cursorpos[0] < Len(inbuffer)+cursorpos[2])
+							{
+								if (bEcho) SendText(Chr(C_ESC)$"["$string(Len(inbuffer)-(cursorpos[0]-cursorpos[2]))$"C");
+								cursorpos[0] = Len(inbuffer)+cursorpos[2];
+							}
+							break;
+		case ECK_Home:		if (cursorpos[0] > cursorpos[2])
+							{
+								if (bEcho) SendText(Chr(C_ESC)$"["$string(cursorpos[0]-cursorpos[2])$"D");
+								cursorpos[0] = cursorpos[2];
+							}
+							break;
+		case ECK_Delete:	if (!cmdLineBackspace()) Bell();
+							break;
+	}
 }
 
 /**	perform tab completion */
@@ -633,6 +694,7 @@ begin:
 	OnReceiveBinary=defReceiveInput;
 	OnReceiveLine=procLogin;
 	OnEscapeCode=defProcEscape;
+	OnCursorKey=defCursorKey;
 	OnLogout=none;
 	OnTabComplete=none;
 	SendText(msgUsername);
@@ -658,6 +720,7 @@ begin:
 	OnReceiveBinary=none;
 	OnReceiveLine=none;
 	OnEscapeCode=none;
+	OnCursorKey=none;
 	OnLogout=none;
 	OnTabComplete=none;
 }
@@ -690,6 +753,7 @@ begin:
 	OnReceiveBinary=defReceiveInput;
 	OnReceiveLine=procInput;
 	OnEscapeCode=defProcEscape;
+	OnCursorKey=defCursorKey;
 	OnLogout=TryLogout;
 	OnTabComplete=defTabComplete;
 	SendPrompt();
@@ -703,58 +767,88 @@ state paged
 	function PagerReceiveInput(int Count, byte B[255])
 	{
 		local int i;
-		for (i = 0; i < count; i++)
+		i = 0;
+		if (bProcEsc) i += OnEscapeCode(i, count, B);
+		for (i = i; i < count; i++)
 		{
 			switch (B[i])
 			{
+				case C_ESC:	i += OnEscapeCode(i+1, count, B);
+							break;
+				case 3:		// ^C q Q
 				case 113:
 				case 81:	ClearResetLine();
 							PagerBuffer.length = 0;
 							GotoState('logged_in');
 							break;
-				case 13:
-				case 32:	PagerFlush();
+				case 13:	PagerScroll(1); // one line
+							break;
+				case 32:	PagerScroll(WindowSize[1]); // one page
 							break;
 			}
 		}
 	}
 
-	function PagerFlush()
+	function PagerCursor(ECursorKey key)
+	{
+		switch (key)
+		{
+			case ECK_Up:		PagerScroll(-1);
+								break;
+			case ECK_Down:		PagerScroll(1);
+								break;
+			case ECK_PageUp:	PagerScroll(-WindowSize[1]);
+								break;
+			case ECK_PageDown:	PagerScroll(WindowSize[1]);
+								break;
+			case ECK_Home:		PagerScroll(-PagerBuffer.Length);
+								break;
+			case ECK_End:		PagerScroll(PagerBuffer.Length);
+								break;
+		}
+	}
+
+	function PagerScroll(int lines)
 	{
 		local int i;
-		PagerLineCount = 0;
+		i = PagerOffset;
+		PagerOffset = clamp(PagerOffset+lines, 0, PagerBuffer.Length-WindowSize[1]+1);
+		if (i == PagerOffset)
+		{
+			Bell();
+			return;
+		}
 		ClearResetLine();
-		for (i = 0; i < PagerBuffer.Length; i++)
+		for (i = PagerOffset; i < PagerBuffer.Length; i++)
 		{
 			SendLine(PagerBuffer[i]);
-			PagerLineCount++;
-			if (PagerLineCount >= (WindowSize[1]-1))
-			{
-				SendText(msgPagerMore);
-				break;
-			}
+			if (i-PagerOffset >= (WindowSize[1]-2)) break;
 		}
-		PagerBuffer.Remove(0, PagerLineCount);
-		if (PagerBuffer.Length == 0)
-		{
-			ClearResetLine();
-			GotoState('logged_in');
-		}
+		PagerStatus(i);
+	}
+
+	function PagerStatus(int position)
+	{
+		SendText(Chr(C_ESC)$"[7m"$msgPagerMore@(PagerOffset+1)@"-"@(position+1)@"("$((position+1)*100/PagerBuffer.Length)$"%)"$Chr(C_ESC)$"[0m");
 	}
 
 begin:
 	OnReceiveBinary=PagerReceiveInput;
 	OnReceiveLine=none;
-	OnEscapeCode=none;
+	OnEscapeCode=defProcEscape;
+	OnCursorKey=PagerCursor;
 	OnLogout=none;
 	OnTabComplete=none;
-	SendText(msgPagerMore);
+	PagerOffset = 0;
+	PagerStatus(WindowSize[1]-2);
 }
 
 function output(string data)
 {
 	if (!bEnablePager) SendLine(data);
 	else {
+		PagerBuffer.length = PagerBuffer.length+1;
+		PagerBuffer[PagerBuffer.length-1] = data;
 		if (PagerLineCount < (WindowSize[1]-1))
 		{
 			SendLine(data);
@@ -762,8 +856,6 @@ function output(string data)
 		}
 		else {
 			if (!IsInState('paged')) GotoState('paged');
-			PagerBuffer.length = PagerBuffer.length+1;
-			PagerBuffer[PagerBuffer.length-1] = data;
 		}
 	}
 }
@@ -775,7 +867,7 @@ function outputError(string errormsg)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.7 2004/01/02 14:22:40 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.8 2004/01/02 20:54:01 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0
@@ -788,5 +880,5 @@ defaultproperties
 	msgLoginFailed="Login failed!"
 	msgTooManuLogins="Too many login tries, goodbye!"
 	msgUnknownCommand="Unknown command: %command%"
-	msgPagerMore="--- more ---";
+	msgPagerMore="pager:";
 }

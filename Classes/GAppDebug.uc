@@ -1,7 +1,7 @@
 /**
 	GAppDebug
 	Debug commands, should not be used in
-	$Id: GAppDebug.uc,v 1.6 2004/01/02 14:22:40 elmuerte Exp $
+	$Id: GAppDebug.uc,v 1.7 2004/01/02 20:54:01 elmuerte Exp $
 */
 class GAppDebug extends UnGatewayApplication;
 
@@ -108,11 +108,19 @@ function execTest(UnGatewayClient client, array<string> cmd)
 			client.output("Pager test - line #"$i);
 		}
 	}
+	if (cmd[0] == "lines")
+	{
+		for (i = 0; i < 10; i++)
+		{
+			client.output("-------------"$i);
+		}
+		client.SendText(chr(27)$"[1;1H"$chr(27)$"[5M");
+	}
 }
 
 defaultproperties
 {
-	innerCVSversion="$Id: GAppDebug.uc,v 1.6 2004/01/02 14:22:40 elmuerte Exp $"
+	innerCVSversion="$Id: GAppDebug.uc,v 1.7 2004/01/02 20:54:01 elmuerte Exp $"
 	Commands[0]=(Name="echo",Help="Returns it's first argument||Usage: echo \"some text\"")
 	Commands[1]=(Name="help",Help="Show help about commands|This should be a built-in command||Usage: help <command>")
 	Commands[2]=(Name="list",Help="Show various lists.|cmd	show registered commands|app	show loaded applications|if	show loaded interfaces|client	show connected clients")
