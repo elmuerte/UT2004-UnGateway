@@ -3,7 +3,7 @@
 	Telnet client, spawned from GITelnetd
 	Note: windows telnet client should use ANSI not VT100
 	RFC: 318, 513, 764, 854, 855, 857, 858, 859, 884, 930, 1073, 1091, 1116, 1572
-	$Id: GCTelnet.uc,v 1.2 2003/09/04 11:26:41 elmuerte Exp $
+	$Id: GCTelnet.uc,v 1.3 2003/12/28 21:40:55 elmuerte Exp $
 */
 class GCTelnet extends UnGatewayClient;
 
@@ -163,6 +163,7 @@ function defReceiveInput(int Count, byte B[255])
 			}
 		}
 		else if (B[i] == 0) {}
+		else if (B[i] == 10) {} // newline, ignore
 		else if (B[i] < 32) /* unhandled control code */ 
 		{
 			interface.gateway.Logf("[defReceiveInput] Unhandled control code:"@B[i], Name, interface.gateway.LOG_DEBUG);
@@ -351,7 +352,7 @@ function DisplayCommandHistory(int offset)
 function IssueMessage()
 {
 	SendLine();
-	SendLine("UnrealWarfare/"$Level.EngineVersion@Interface.gateway.Ident@Interface.Ident@Interface.gateway.ComputerName@Interface.Gateway.CreationTime);
+	SendLine("UnrealEngine2/"$Level.EngineVersion@Interface.gateway.Ident@Interface.Ident@Interface.gateway.ComputerName@Interface.Gateway.CreationTime);
 	SendLine();
 }
 

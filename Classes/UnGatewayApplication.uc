@@ -1,7 +1,7 @@
 /**
 	UnGatewayApplication
 	Applications
-	$Id: UnGatewayApplication.uc,v 1.1 2003/09/04 08:11:46 elmuerte Exp $
+	$Id: UnGatewayApplication.uc,v 1.2 2003/12/28 21:40:55 elmuerte Exp $
 */
 class UnGatewayApplication extends Object within GatewayDaemon abstract;
 
@@ -41,4 +41,15 @@ function bool ExecCmd(UnGatewayClient client, array<string> cmd)
 function bool CanClose(UnGatewayClient client)
 {
 	return true;
+}
+
+/** return help string */
+function string GetHelpFor(string Command)
+{
+	local int i;
+	for (i = 0; i < Commands.length; i++)
+	{
+		if (Commands[i].Name ~= Command) return Commands[i].Help;
+	}
+	return "";
 }

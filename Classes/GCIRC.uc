@@ -2,7 +2,7 @@
 	GCIRC
 	IRC client, spawned from GIIRCd
 	RFC: 1459
-	$Id: GCIRC.uc,v 1.9 2003/09/27 15:13:08 elmuerte Exp $
+	$Id: GCIRC.uc,v 1.10 2003/12/28 21:40:55 elmuerte Exp $
 */
 class GCIRC extends UnGatewayClient;
 
@@ -521,7 +521,7 @@ function ircExecVERSION(optional string server)
 {
 	if (server == "")
 	{
-		SendIRC(":"$interface.gateway.hostname@"UnrealWarfare/"$Level.EngineVersion@Interface.gateway.Ident@Interface.Ident, "004");
+		SendIRC(":"$interface.gateway.hostname@"UnrealEngine2/"$Level.EngineVersion@Interface.gateway.Ident@Interface.Ident, "004");
 		SendIRC("PREFIX=(ov)@+ MODES=3 CHANTYPES=#& MAXCHANNELS="$MaxChannels$" NICKLEN=9 TOPICLEN=160 KICKLEN=160 NETWORK=... CHANMODES=... :are supported by this server", "004");
 	}
 	else {
