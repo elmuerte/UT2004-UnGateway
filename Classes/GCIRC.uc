@@ -8,7 +8,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCIRC.uc,v 1.15 2004/04/13 16:04:39 elmuerte Exp $ -->
+	<!-- $Id: GCIRC.uc,v 1.16 2004/05/08 17:43:39 elmuerte Exp $ -->
 *******************************************************************************/
 class GCIRC extends UnGatewayClient;
 
@@ -26,7 +26,7 @@ var(Config) config int MaxChannels;
 var(Config) config bool bAllowCreateChannel;
 
 /** listening on the channels this client is in */
-var array<int> Channels;
+var array<UGIRCChannel> Channels;
 
 /** userhost string: username@hostname*/
 var string sUserhost;
@@ -42,12 +42,14 @@ var int ClientID;
 event Closed()
 {
 	local int i;
-	Super.Closed();
+
 	if (QuitMessage == "") QuitMessage = "Connection reset by peer";
 	for (i = 0; i < Channels.length; i++)
 	{
-		GIIRCd(Interface).BroadcastMessage(":"$sUsername$"!"$sUserhost@"QUIT :"$QuitMessage, Channels[i], self);
+		Channels[i].BroadcastMessage(":"$sUsername$"!"$sUserhost@"QUIT :"$QuitMessage, self);
+		Channels[i].PartUser(ClientID, true);
 	}
+	Super.Closed();
 }
 
 /** send RAW irc reply */
@@ -56,7 +58,7 @@ function SendIRC(string data, coerce string code)
 	local string nm;
 	if ((code == "") || (data == "")) return;
 	if (!IsInState('Login')) nm = sUsername;
-		else nm = "*";
+	else nm = "*";
 	// :<server host> <code> <nickname> <additional data>
 	SendText(":"$interface.gateway.hostname@code@nm@data);
 	interface.gateway.Logf("[SendIRC] :"$interface.gateway.hostname@code@nm@data, Name, interface.gateway.LOG_DEBUG);
@@ -66,34 +68,15 @@ function SendIRC(string data, coerce string code)
 	Return true if this user is in the channel.
 	Using the channel record pointer is faster
 */
-function bool IsIn(optional string channelname, optional int id)
+function bool IsIn(UGIRCChannel chan)
 {
 	local int i;
-	if (id == -1) return false;
-	if (channelname == "")
+	if (chan == none) return false;
+	for (i = 0; i < Channels.length; i++)
 	{
-		for (i = 0; i < Channels.length; i++)
-		{
-			if (Channels[i] == id) return true;
-		}
-	}
-	else {
-		for (i = 0; i < Channels.length; i++)
-		{
-			if (GIIRCd(Interface).Channels[Channels[i]].Name ~= channelname) return true;
-		}
+		if (Channels[i] == chan) return true;
 	}
 	return false;
-}
-
-/** check if a channel name is valid */
-function bool checkValidChanName(string channel)
-{
-	if ((Left(channel, 1) != "#" && Left(channel, 1) != "&") || (InStr(channel, ",") > -1) || (InStr(channel, Chr(7)) > -1))
-	{
-		return false;
-	}
-	return true;
 }
 
 /** user is logging in */
@@ -109,23 +92,23 @@ auto state Login
 		{
 			// NICK <nickname>
 			case "NICK":	if (input.length < 2) SendIRC(":No nickname given", "431"); // ERR_NONICKNAMEGIVEN
-										else GIIRCd(Interface).CheckNickName(Self, input[1]); // will check the name and assign it
-										break;
+							else GIIRCd(Interface).CheckNickName(Self, input[1]); // will check the name and assign it
+							break;
 			// PASS <password>
 			case "PASS":	if (input.length < 2) SendIRC("PASS :Not enough parameters", "461"); // ERR_NEEDMOREPARAMS
-										else if (sUsername != "" || sUserhost != "") SendIRC(":You may not reregister", "462"); // ERR_ALREADYREGISTRED
-										else sPassword = input[1];
-										break;
+							else if (sUsername != "" || sUserhost != "") SendIRC(":You may not reregister", "462"); // ERR_ALREADYREGISTRED
+							else sPassword = input[1];
+							break;
 			// USER <username> <client host> <server host> :<real name>
 			case "USER":	if (input.length < 4)
-										{
-											SendIRC("USER :Not enough parameters", "461"); // ERR_NEEDMOREPARAMS
-											break;
-										}
-										sUserhost = "~"$input[1]$"@"$input[2]; // no ident lookup
-										sRealname = Mid(line, InStr(line, ":")+1);  // strip :
-										break;
-			default:			SendIRC(input[0]@":Unknown command", "421"); // ERR_UNKNOWNCOMMAND
+							{
+								SendIRC("USER :Not enough parameters", "461"); // ERR_NEEDMOREPARAMS
+								break;
+							}
+							sUserhost = "~"$input[1]$"@"$input[2]; // no ident lookup
+							sRealname = Mid(line, InStr(line, ":")+1);  // strip :
+							break;
+			default:		SendIRC(input[0]@":Unknown command", "421"); // ERR_UNKNOWNCOMMAND
 		}
 		if (sUsername != "" && sUserhost != "")
 		{
@@ -134,10 +117,11 @@ auto state Login
 				if (!interface.gateway.Login(Self, sUsername, sPassword, interface.ident@sUserhost))
 				{
 					SendIRC(":Password incorrect", "464"); // ERR_PASSWDMISMATCH
-			    Close();
+			    	Close();
 				}
 			}
 			ClientID = GIIRCd(Interface).GetIRCUser(self);
+			interface.gateway.Logf("[Login] I am ClientID #"$ClientID, Name, interface.gateway.LOG_DEBUG);
 			GIIRCd(Interface).IRCUsers[ClientID].Realname = sRealname;
 			PlayerController.SetName(sUsername);
 			GotoState('loggedin');
@@ -145,6 +129,7 @@ auto state Login
 	}
 
 begin:
+	ClientID=-1;
 	OnReceiveLine=procLogin;
 }
 
@@ -160,83 +145,91 @@ state Loggedin
 		input[0] = caps(input[0]);
 		switch (input[0])
 		{
-			case "NICK":		if (input.length < 2) SendIRC(":No nickname given", "431"); // ERR_NONICKNAMEGIVEN
-											else GIIRCd(Interface).CheckNickName(Self, input[1]); // will check the name and assign it
-											break;
+			case "NICK":		data1[0] = sUsername$"!"$sUserhost;
+								if (input.length < 2) SendIRC(":No nickname given", "431"); // ERR_NONICKNAMEGIVEN
+								else if (GIIRCd(Interface).CheckNickName(Self, input[1])) // will check the name and assign it
+								{
+									GIIRCd(Interface).BroadcastMessageList(":"$data1[0]@"NICK"@sUsername, Channels);
+								}
+								break;
 			case "PASS":		SendIRC(":You may not reregister", "462"); // ERR_ALREADYREGISTRED
-											break;
-			case "USER":		SendIRC("::You may not reregister", "462"); // ERR_ALREADYREGISTRED
-											break;
+								break;
+			case "USER":		SendIRC(":You may not reregister", "462"); // ERR_ALREADYREGISTRED
+								break;
 			case "PING":		if (input.length < 2) SendIRC(":No origin specified", "409"); // ERR_NOORIGIN
-											SendText("PONG"@input[1]); break;
+								SendText("PONG"@input[1]); break;
 			case "MOTD":		ircExecMOTD(); break;
 			case "OPER":		if (input.length < 3) SendIRC("OPER :Not enough parameters", "461"); // ERR_NEEDMOREPARAMS
-											else {
-												//sUsername = input[1]; // don't set the username
-												sPassword = input[2];
-												if (!interface.gateway.Login(Self, input[1], sPassword, interface.ident@sUserhost))
-												{
-													SendIRC(":Password incorrect", "464"); // ERR_PASSWDMISMATCH
-												}
-												else {
-													SendIRC(":You are now an IRC operator", "381"); // RPL_YOUREOPER
-												}
-											}
-											break;
+								else {
+									//sUsername = input[1]; // don't set the username
+									sPassword = input[2];
+									if (!interface.gateway.Login(Self, input[1], sPassword, interface.ident@sUserhost))
+									{
+										SendIRC(":Password incorrect", "464"); // ERR_PASSWDMISMATCH
+									}
+									else {
+										SendIRC(":You are now an IRC operator", "381"); // RPL_YOUREOPER
+										for (i = 0; i < Channels.length; i++)
+										{
+											channels[i].SetChannelModeUser(ClientID, "o");
+										}
+									}
+								}
+								break;
 			case "QUIT":		ircExecQUIT(Mid(line, 6)); break;
 			case "SQUIT":		break; // NOT YET supported
 			case "JOIN":		if (input.length < 2) SendIRC("JOIN :Not enough parameters", "461"); // ERR_NEEDMOREPARAMS
-											else {
-												split(input[1], ",", data1);
-												if (input.length > 2) split(input[1], ",", data2);
-												for (i = 0; i < data1.length; i++)
-												{
-													if (data2.length > i) ircExecJOIN(data1[i], data2[i]);
-														else ircExecJOIN(data1[i]);
-												}
-											}
-											break;
+								else {
+									split(input[1], ",", data1);
+									if (input.length > 2) split(input[1], ",", data2);
+									for (i = 0; i < data1.length; i++)
+									{
+										if (data2.length > i) ircExecJOIN(data1[i], data2[i]);
+											else ircExecJOIN(data1[i]);
+									}
+								}
+								break;
 			case "PART":		if (input.length < 2) SendIRC("PART :Not enough parameters", "461"); // ERR_NEEDMOREPARAMS
-											else {
-												split(input[1], ",", data1);
-												for (i = 0; i < data1.length; i++)
-												{
-													ircExecPART(data1[i]);
-												}
-											}
-											break;
+								else {
+									split(input[1], ",", data1);
+									for (i = 0; i < data1.length; i++)
+									{
+										ircExecPART(data1[i]);
+									}
+								}
+								break;
 			case "MODE":		if (input.length < 2) SendIRC("MODE :Not enough parameters", "461"); // ERR_NEEDMOREPARAMS
-											else {
-												input.remove(0, 1);
-												ircExecMODE(input);
-											}
-											break;
+								else {
+									input.remove(0, 1);
+									ircExecMODE(input);
+								}
+								break;
 			case "TOPIC":		if (input.length < 2) SendIRC("TOPIC :Not enough parameters", "461"); // ERR_NEEDMOREPARAMS
-											else {
-												i = InStr(line, ":");
-												if (i > -1)	ircExecTOPIC(input[1], Mid(line, i));
-													else ircExecTOPIC(input[1]);
-											}
-											break;
+								else {
+									i = InStr(line, ":");
+									if (i > -1)	ircExecTOPIC(input[1], Mid(line, i));
+										else ircExecTOPIC(input[1]);
+								}
+								break;
 			case "NAMES":		if (input.length > 1)
-											{
-												split(input[1], ",", data1);
-												for (i = 0; i < data1.length; i++)
-												{
-													ircExecNAMES(data1[i]);
-												}
-											}
-											else {
-												for (i = 0; i < Channels.length; i++) ircExecNAMES(GIIRCd(Interface).Channels[Channels[i]].Name);
-											}
-											break;
+								{
+									split(input[1], ",", data1);
+									for (i = 0; i < data1.length; i++)
+									{
+										ircExecNAMES(data1[i]);
+									}
+								}
+								else {
+									for (i = 0; i < Channels.length; i++) ircExecNAMES(channels[i].ChannelName);
+								}
+								break;
 			case "LIST":		ircExecLIST(); // can only print local channels
-											break;
+								break;
 			//case "INVITE":	not supported
 			case "KICK":		break; // not yet implemented
-			case "VERSION":	if (input.length > 1) ircExecVERSION(input[1]);
-											else ircExecVERSION();
-											break;
+			case "VERSION":		if (input.length > 1) ircExecVERSION(input[1]);
+								else ircExecVERSION();
+								break;
 			//case "STATS":		not supported
 			//case "LINKS":		not supported, yet
 			//case "TIME":		not supported, yet
@@ -244,53 +237,53 @@ state Loggedin
 			//case "TRACE":		not supported
 			//case "ADMIN":		not supported, yet
 			//case "INFO":		not supported, yet
-			case "PRIVMSG":	if (input.length < 3) SendIRC("TOPIC :Not enough parameters", "461"); // ERR_NEEDMOREPARAMS
-											else {
-												split(input[1], ",", data1);
-												i = InStr(line, ":");
-												if (i == -1)
-												{
-													SendIRC(":No text to send", "412"); // ERR_NOTEXTTOSEND
-													break;
-												}
-												input[2] = Mid(line, i);
-												if (input[2] == "")
-												{
-													SendIRC(":No text to send", "412"); // ERR_NOTEXTTOSEND
-													break;
-												}
-												for (i = 0; i < data1.length; i++)
-												{
-													ircExecPRIVMSG(data1[i], input[2]);
-												}
-											}
-											break;
-			case "NOTICE":	if (input.length < 3) break;
-											else {
-												split(input[1], ",", data1);
-												i = InStr(line, ":");
-												if (i == -1) break;
-												input[2] = Mid(line, i);
-												if (input[2] == "") break;
-												for (i = 0; i < data1.length; i++)
-												{
-													ircExecNOTICE(data1[i], input[2]);
-												}
-											}
-											break;
+			case "PRIVMSG":		if (input.length < 3) SendIRC("TOPIC :Not enough parameters", "461"); // ERR_NEEDMOREPARAMS
+								else {
+									split(input[1], ",", data1);
+									i = InStr(line, ":");
+									if (i == -1)
+									{
+										SendIRC(":No text to send", "412"); // ERR_NOTEXTTOSEND
+										break;
+									}
+									input[2] = Mid(line, i);
+									if (input[2] == "")
+									{
+										SendIRC(":No text to send", "412"); // ERR_NOTEXTTOSEND
+										break;
+									}
+									for (i = 0; i < data1.length; i++)
+									{
+										ircExecPRIVMSG(data1[i], input[2]);
+									}
+								}
+								break;
+			case "NOTICE":		if (input.length < 3) break;
+								else {
+									split(input[1], ",", data1);
+									i = InStr(line, ":");
+									if (i == -1) break;
+									input[2] = Mid(line, i);
+									if (input[2] == "") break;
+									for (i = 0; i < data1.length; i++)
+									{
+										ircExecNOTICE(data1[i], input[2]);
+									}
+								}
+								break;
 			case "WHO":			if (input.length == 1) ircExecWHO();
-											else if (input.length == 2) ircExecWHO(input[1]);
-											else if (input.length == 3) ircExecWHO(input[1], (input[2] == "o"));
-											break;
+								else if (input.length == 2) ircExecWHO(input[1]);
+								else if (input.length == 3) ircExecWHO(input[1], (input[2] == "o"));
+								break;
 			case "WHOIS":		// not yet implemented
-											break;
-			case "WHOWAS":	// not yet implemented
+								break;
+			case "WHOWAS":		// not yet implemented
 			case "KILL":		if (input.length < 3) SendIRC("KILL :Not enough parameters", "461"); // ERR_NEEDMOREPARAMS
-											else {
-												ircExecKILL(input[1], "...");
-											}
-											break;
-			default:				SendIRC(input[0]@":Unknown command", "421"); // ERR_UNKNOWNCOMMAND
+								else {
+									ircExecKILL(input[1], "...");
+								}
+								break;
+			default:			sendIRC(input[0]@":Unknown command", "421"); // ERR_UNKNOWNCOMMAND
 		}
 	}
 
@@ -303,7 +296,7 @@ begin:
 	SendIRC(":There are ... users and ... services on ... servers", "251");
 	SendIRC("... :operators online", "252");
 	SendIRC("... :unknown connections", "253");
-	SendIRC("... :channels formed", "254");
+	SendIRC(string(GIIRCd(Interface).Channels.length)$" :channels formed", "254");
 	SendIRC(":I have ... users, 0 services and ... servers", "255");
 	SendIRC(":Current local users: ... Max: ...", "265");
 	SendIRC(":Current global users: ... Max: ...", "252");
@@ -325,7 +318,7 @@ function ircExecMOTD()
 	SendIRC(":-"@interface.gateway.hostname@"Message of the Day -", "375");
 	for (i = 0; i < GIIRCd(Interface).Channels.length; i++)
 	{
-		chans $= GIIRCd(Interface).Channels[i].Name$" ";
+		chans $= GIIRCd(Interface).Channels[i].ChannelName$" ";
 	}
 	for (i = 0; i < MOTD.length; i++)
 	{
@@ -347,8 +340,8 @@ function ircExecQUIT(optional string QuitMsg)
 /** join a channel */
 function ircExecJOIN(string channel, optional string key)
 {
-	local int id;
-	if (!checkValidChanName(channel))
+	local UGIRCChannel id;
+	if (!GIIRCd(interface).IRCChannelClass.static.checkValidChanName(channel))
 	{
 		SendIRC(channel@":ERR_BADCHANMASK", "476"); // ERR_BADCHANMASK
 		return;
@@ -359,7 +352,7 @@ function ircExecJOIN(string channel, optional string key)
 		return;
 	}
 	id = GIIRCd(Interface).GetChannel(channel);
-	if (id == -1) // create the channel
+	if (id == none) // create the channel
 	{
 		if (!bAllowCreateChannel)
 		{
@@ -371,40 +364,49 @@ function ircExecJOIN(string channel, optional string key)
 		}
 	}
 
-	if (IsIn(, id)) // already in this channel
+	if (IsIn(id)) // already in this channel
 	{
 	}
 	else {
-		if (GIIRCd(Interface).Channels[id].Key != "" && GIIRCd(Interface).Channels[id].Key != Key)
+		if (id.Key != "" && id.Key != Key)
 		{
 			SendIRC(channel@":Cannot join channel (+k)", "475"); // ERR_BADCHANNELKEY
 		}
-		else if (GIIRCd(Interface).Channels[id].Limit <= GIIRCd(Interface).Channels[id].Users.length && GIIRCd(Interface).Channels[id].Limit > 0)
+		else if (id.Limit <= id.Users.length && id.Limit > 0)
 		{
 			SendIRC(channel@":Cannot join channel (+l)", "471"); // ERR_CHANNELISFULL
 		}
-		else if (GIIRCd(Interface).IsBanned(id, sUsername$"!"$sUserhost))
+		else if (id.IsBanned(sUsername$"!"$sUserhost))
 		{
 			SendIRC(channel@":Cannot join channel (+b)", "474"); // ERR_BANNEDFROMCHAN
 		}
-		else if (GIIRCd(Interface).Channels[id].bAdmin && !PlayerController.PlayerReplicationInfo.bAdmin)
+		else if (id.bAdmin && !PlayerController.PlayerReplicationInfo.bAdmin)
 		{
 			SendIRC(channel@":Cannot join channel (+b) (Admin only)", "474"); // ERR_BANNEDFROMCHAN
 		}
-		else if (InStr(GIIRCd(Interface).Channels[id].Mode, "i") > -1)
+		else if (InStr(id.Mode, "i") > -1)
 		{
 			SendIRC(channel@":Cannot join channel (+i)", "473"); // ERR_INVITEONLYCHAN
 		}
 		else {
 			Channels.length = Channels.length+1;
 			Channels[Channels.length-1] = id;
-			GIIRCd(Interface).Channels[id].Users.length = GIIRCd(Interface).Channels[id].Users.length+1;
-			GIIRCd(Interface).Channels[id].Users[GIIRCd(Interface).Channels[id].Users.length-1].uid = ClientID;
-			if (GIIRCd(Interface).Channels[id].Users.length == 1) GIIRCd(Interface).Channels[id].Users[GIIRCd(Interface).Channels[id].Users.length-1].bOp = true;
+			id.Users.length = id.Users.length+1;
+			id.Users[id.Users.length-1].uid = ClientID;
+			if (id.bSpecial) {}
+			else if (id.Users.length == 1) id.Users[id.Users.length-1].bOp = true;
 			SendText(":"$sUsername$"!"$sUserhost@"JOIN"@channel);
 			ircExecTOPIC(channel);
 			ircExecNAMES(channel);
-			GIIRCd(Interface).BroadcastMessage(":"$sUsername$"!"$sUserhost@"JOIN"@channel, id, self);
+			id.BroadcastMessage(":"$sUsername$"!"$sUserhost@"JOIN"@channel, self);
+			if (id.bSpecial)
+			{
+				if (PlayerController.PlayerReplicationInfo.bAdmin)
+				{
+					id.Users[id.Users.length-1].bOp = true;
+					id.BroadcastMessage(":"$interface.gateway.hostname@"MODE"@channel@"+o"@sUsername);
+				}
+			}
 		}
 	}
 }
@@ -412,24 +414,17 @@ function ircExecJOIN(string channel, optional string key)
 /** part a channel */
 function ircExecPART(string channel)
 {
-	local int i, id;
+	local int i;
+	local UGIRCChannel id;
 	id = GIIRCd(Interface).GetChannel(channel);
-	if (IsIn(, id))
+	if (IsIn(id))
 	{
-		GIIRCd(Interface).BroadcastMessage(":"$sUsername$"!"$sUserhost@"PART"@channel, id);
+		id.PartUser(ClientID);
 		for (i = 0; i < Channels.length; i++)
 		{
 			if (Channels[i] == id)
 			{
 				Channels.remove(i, 1);
-				break;
-			}
-		}
-		for (i = 0; i < GIIRCd(Interface).Channels[id].users.length; i++)
-		{
-			if (GIIRCd(Interface).Channels[id].users[i].uid == clientid)
-			{
-				GIIRCd(Interface).Channels[id].users.remove(i, 1);
 				break;
 			}
 		}
@@ -442,24 +437,24 @@ function ircExecPART(string channel)
 /** get or set a channel or user mode */
 function ircExecMODE(array<string> args)
 {
-	local int id;
+	local UGIRCChannel id;
 	if (Left(args[0], 1) == "#" || Left(args[0], 1) == "&")
 	{
 		// chan modes
 		id = GIIRCd(Interface).GetChannel(args[0]);
-		if (IsIn(, id))
+		if (IsIn(id))
 		{
 			if (args.length < 2)
 			{
 				// get
-				SendIRC(args[0]@"+"$GIIRCd(Interface).Channels[id].mode, "324"); // RPL_CHANNELMODEIS
-				if (GIIRCd(Interface).Channels[id].Key != "")
+				SendIRC(args[0]@"+"$id.mode, "324"); // RPL_CHANNELMODEIS
+				if (id.Key != "")
 				{
-					SendIRC(args[0]@"+k"@GIIRCd(Interface).Channels[id].Key, "324"); // RPL_CHANNELMODEIS
+					SendIRC(args[0]@"+k"@id.Key, "324"); // RPL_CHANNELMODEIS
 				}
-				if (GIIRCd(Interface).Channels[id].Limit > 0)
+				if (id.Limit > 0)
 				{
-					SendIRC(args[0]@"+l"@GIIRCd(Interface).Channels[id].Limit, "324"); // RPL_CHANNELMODEIS
+					SendIRC(args[0]@"+l"@id.Limit, "324"); // RPL_CHANNELMODEIS
 				}
 			}
 			else {
@@ -476,19 +471,19 @@ function ircExecMODE(array<string> args)
 }
 
 /** get or set the channel topic */
-function ircExecTOPIC(string channel, optional string newTopic, optional int id)
+function ircExecTOPIC(string channel, optional string newTopic, optional UGIRCChannel id)
 {
 	if (channel != "") id = GIIRCd(Interface).GetChannel(channel);
-	if (!IsIn(, id))
+	if (!IsIn(id))
 	{
 		SendIRC(channel@":You're not on that channel", "442"); // ERR_NOTONCHANNEL
 		return;
 	}
 	if (newTopic == "")
 	{
-		if (GIIRCd(Interface).Channels[id].Topic != "")
+		if (id.Topic != "")
 		{
-			SendIRC(channel@":"$GIIRCd(Interface).Channels[id].Topic, "332"); // RPL_TOPIC
+			SendIRC(channel@":"$id.Topic, "332"); // RPL_TOPIC
 		}
 		else {
 			SendIRC(channel@":No topic is set", "331"); // RPL_NOTOPIC
@@ -500,32 +495,32 @@ function ircExecTOPIC(string channel, optional string newTopic, optional int id)
 }
 
 /** get the names list of a channel */
-function ircExecNAMES(optional string channel, optional int id)
+function ircExecNAMES(optional string channel, optional UGIRCChannel id)
 {
 	local int i;
 	local string tmp;
 
 	if (channel != "") id = GIIRCd(Interface).GetChannel(channel);
-	if (!IsIn(, id))
+	if (!IsIn(id))
 	{
 		SendIRC(channel@":You're not on that channel", "442"); // ERR_NOTONCHANNEL
 		return;
 	}
-	for (i = 0; i < GIIRCd(Interface).Channels[id].Users.length; i++)
+	for (i = 0; i < id.Users.length; i++)
 	{
 		if (tmp != "") tmp $= " ";
-		if (GIIRCd(Interface).Channels[id].Users[i].bOp) tmp $= "@";
-		else if (GIIRCd(Interface).Channels[id].Users[i].bHalfop) tmp $= "%";
-		else if (GIIRCd(Interface).Channels[id].Users[i].bVoice) tmp $= "+";
-		tmp $= GIIRCd(Interface).IRCUsers[GIIRCd(Interface).Channels[id].Users[i].uid].Nick;
+		if (id.Users[i].bOp) tmp $= "@";
+		else if (id.Users[i].bHalfop) tmp $= "%";
+		else if (id.Users[i].bVoice) tmp $= "+";
+		tmp $= GIIRCd(Interface).IRCUsers[id.Users[i].uid].Nick;
 		if (i+1 % 10 == 0)
 		{
-			SendIRC("="@GIIRCd(Interface).Channels[id].Name@":"$tmp, "353"); // RPL_NAMREPLY
+			SendIRC("="@id.ChannelName@":"$tmp, "353"); // RPL_NAMREPLY
 			tmp = "";
 		}
 	}
-	if (tmp != "") SendIRC("="@GIIRCd(Interface).Channels[id].Name@":"$tmp, "353"); // RPL_NAMREPLY
-	SendIRC(GIIRCd(Interface).Channels[id].Name@":End of /NAMES list", "366"); // RPL_ENDOFNAMES
+	if (tmp != "") SendIRC("="@id.ChannelName@":"$tmp, "353"); // RPL_NAMREPLY
+	SendIRC(id.ChannelName@":End of /NAMES list", "366"); // RPL_ENDOFNAMES
 }
 
 /** return the version information about a server */
@@ -544,16 +539,41 @@ function ircExecVERSION(optional string server)
 /** send a message to a user or channel */
 function ircExecPRIVMSG(string receipt, string text)
 {
-	local int id;
+	local UGIRCChannel id;
+	local array<string> cmd;
+
 	if (Left(receipt, 1) == "#" || Left(receipt, 1) == "&")
 	{
 		id = GIIRCd(Interface).GetChannel(receipt);
-		if (!IsIn(, id))
+		if (!IsIn(id))
 		{
 			SendIRC(receipt@":You're not on that channel", "442"); // ERR_NOTONCHANNEL
 			return;
 		}
-		GIIRCd(Interface).BroadcastMessage(":"$sUsername$"!"$sUserhost@"PRIVMSG"@receipt@text, id, self);
+		if (!id.bSpecial)
+		{
+			id.BroadcastMessage(":"$sUsername$"!"$sUserhost@"PRIVMSG"@receipt@text, self);
+		}
+		else {
+			if (receipt ~= GIIRCd(Interface).GameChannel)
+			{
+				AdvSplit("say"@text, " ", cmd);
+				Interface.gateway.ExecCommand(self, cmd);
+			}
+			else if (receipt ~= GIIRCd(Interface).AdminChannel)
+			{
+				if (Left(text, 1) == ".") // command
+				{
+					AdvSplit(Mid(text, 1), " ", cmd, "\"");
+					Interface.gateway.ExecCommand(self, cmd);
+				}
+				// adminchat
+				else id.BroadcastMessage(":"$sUsername$"!"$sUserhost@"PRIVMSG"@receipt@text, self);
+			}
+			else {
+				//TODO: unknown channel
+			}
+		}
 	}
 	else {
 		// nick msg
@@ -569,27 +589,29 @@ function ircExecNOTICE(string receipt, string text)
 /** request information about a user/usermask */
 function ircExecWHO(optional string mask, optional bool bOnlyOps)
 {
-	local int id, i, uid;
+	local int i, uid;
 	local string tmp;
+	local UGIRCChannel id;
+
 	if (Left(mask, 1) == "#" || Left(mask, 1) == "&")
 	{
 		id = GIIRCd(Interface).GetChannel(mask);
-		if (!IsIn(, id))
+		if (!IsIn(id))
 		{
 			SendIRC(mask@":You're not on that channel", "442"); // ERR_NOTONCHANNEL
 			return;
 		}
-		for (i = 0; i < GIIRCd(Interface).Channels[id].Users.length; i++)
+		for (i = 0; i < id.Users.length; i++)
 		{
 			// "<channel> <user> <host> <server> <nick> <H|G>[*][@|+] :<hopcount> <real name>"
-			uid = GIIRCd(Interface).Channels[id].Users[i].uid;
+			uid = id.Users[i].uid;
 			tmp = mask@repl(GIIRCd(Interface).IRCUsers[uid].Userhost,"@", " ");
 			tmp @= interface.gateway.hostname;
 			tmp @= GIIRCd(Interface).IRCUsers[uid].Nick;
 			Tmp @= "H"; // only H, no away supported
-			if (GIIRCd(Interface).Channels[id].Users[i].bOp) tmp $= "@";
-			else if (GIIRCd(Interface).Channels[id].Users[i].bHalfop) tmp $= "%";
-			else if (GIIRCd(Interface).Channels[id].Users[i].bVoice) tmp $= "+";
+			if (id.Users[i].bOp) tmp $= "@";
+			else if (id.Users[i].bHalfop) tmp $= "%";
+			else if (id.Users[i].bVoice) tmp $= "+";
 			tmp @= ":0"@GIIRCd(Interface).IRCUsers[uid].Realname;
 			SendIRC(tmp, "352"); // RPL_WHOREPLY
 		}
@@ -613,18 +635,39 @@ function ircExecLIST(optional string mask)
 	SendIRC("Channel :Users  Name", "321"); // RPL_LISTSTART
 	for (i = 0; i < GIIRCd(Interface).Channels.length; i++)
 	{
-		if (InStr(GIIRCd(Interface).Channels[i].Name, "s") > -1) continue;
-		if (InStr(GIIRCd(Interface).Channels[i].Name, "p") > -1) continue;
+		if (InStr(GIIRCd(Interface).Channels[i].ChannelName, "s") > -1) continue;
+		if (InStr(GIIRCd(Interface).Channels[i].ChannelName, "p") > -1) continue;
 		// todo: check mask
-		SendIRC(GIIRCd(Interface).Channels[i].Name@GIIRCd(Interface).Channels[i].Users.length@":"$GIIRCd(Interface).Channels[i].Topic, "322"); // RPL_LIST
+		SendIRC(GIIRCd(Interface).Channels[i].ChannelName@GIIRCd(Interface).Channels[i].Users.length@":"$GIIRCd(Interface).Channels[i].Topic, "322"); // RPL_LIST
 	}
 	SendIRC(":End of /LIST", "323"); // RPL_LISTEND
 }
 
+/** return of a function call, ident is used to ident the data, always output this to the admin channel */
+function output(coerce string data, optional string ident, optional bool bDontWrapFirst)
+{
+	SendText(":"$sUsername$"!"$sUserhost@"PRIVMSG"@GIIRCd(Interface).AdminChannel@data);
+}
+
+/** return of a function call, ident is used to ident the data */
+function outputError(string errormsg, optional string ident, optional bool bDontWrapFirst)
+{
+}
+
+/** will be called for chat messages, always output this to the game channel */
+function outputChat(coerce string pname, coerce string message, optional name Type)
+{
+	local int id;
+	if (pname ~= sUsername) return;
+	id = GIIRCd(Interface).GetNick(pname);
+	SendText(":"$GIIRCd(Interface).IRCUsers[id].Nick$"!"$GIIRCd(Interface).IRCUsers[id].Userhost@"PRIVMSG"@GIIRCd(Interface).GameChannel@message);
+}
+
+
 defaultproperties
 {
 	ClientID=-1
-	CVSversion="$Id: GCIRC.uc,v 1.15 2004/04/13 16:04:39 elmuerte Exp $"
+	CVSversion="$Id: GCIRC.uc,v 1.16 2004/05/08 17:43:39 elmuerte Exp $"
 	bShowMotd=true
 	MaxChannels=2
 	bAllowCreateChannel=false
@@ -657,7 +700,7 @@ defaultproperties
 	MOTD[25]="   Welcome to %hostname%"
 	MOTD[26]="   Available channels are: %channels%"
 	MOTD[27]=""
-	MOTD[28]="   This server uses the UnGateway system mabe by Michiel 'El Muerte' Hendriks."
+	MOTD[28]="   this server uses the UnGateway system made by Michiel 'El Muerte' Hendriks."
 	MOTD[29]="   This IRC server is just part of an even larger system."
 	MOTD[30]=""
 	MOTD[31]="   For more information about UnGateway visit the homepage:"

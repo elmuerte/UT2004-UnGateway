@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GIIRCd.uc,v 1.13 2004/04/06 19:12:00 elmuerte Exp $ -->
+	<!-- $Id: GIIRCd.uc,v 1.14 2004/05/08 17:43:39 elmuerte Exp $ -->
 *******************************************************************************/
 class GIIRCd extends UnGatewayInterface;
 
@@ -35,52 +35,24 @@ struct IRCUserRecord
 /** list with irc users, connected or dead */
 var array<IRCUserRecord> IRCUsers;
 
-/** information about a user in a channel */
-struct ChannelUserRecord
-{
-	/** ID in the IRCUsers table */
-	var int uid;
-	var bool bOp;
-	var bool bVoice;
-	var bool bHalfOp;
-};
-
-/** channel record */
-struct LocalChannelRecord
-{
-	/** channel name */
-	var string Name;
-	/** channel topic */
-	var string Topic;
-	/** timestamp when this topic was set */
-	var int Topictime;
-	/** local only, only exists on this server */
-	var bool bLocal;
-	/** is admin channel */
-	var bool bAdmin;
-	/** channel mode */
-	var string Mode;
-	/** the key required to join this channel */
-	var string Key;
-	/** the user limit for this channel */
-	var int Limit;
-	/** channel creation time */
-	var int TimeStamp;
-	/** bans set in this channel */
-	var array<string> Bans;
-	/** information about the users in this channel */
-	var array<ChannelUserRecord> Users;
-	//var bool bDead; // for disconnected clients (also whowas) ??
-};
 /** registered channels */
-var array<LocalChannelRecord> Channels;
+var array<UGIRCChannel> Channels;
+/** IRC Channel class to create */
+var class<UGIRCChannel> IRCChannelClass;
+
+/** name of the game channel */
+var string GameChannel;
+/** local channel for administration */
+var string AdminChannel;
 
 /** create the initial channels */
 function Create(GatewayDaemon gwd)
 {
 	Super.Create(gwd);
-	CreateChannel("&admin", "Server administation channel", true, true);
-	CreateChannel("#"$gateway.hostaddress$"_"$Level.Game.GetServerPort(), Level.Game.GameReplicationInfo.ServerName@"-"@Level.Game.GameName@"-"@Level.Title);
+	AdminChannel = "&admin";
+	CreateChannel(AdminChannel, "Server administation channel - prefix message with a '.' to execute commands", true, true, true);
+	GameChannel = "#"$gateway.hostaddress$"_"$Level.Game.GetServerPort();
+	CreateChannel(GameChannel, Level.Game.GameReplicationInfo.ServerName@"-"@Level.Game.GameName@"-"@Level.Title,,,true);
 }
 
 /** register the new client */
@@ -132,12 +104,20 @@ function bool CheckNickName(GCIRC client, string RequestedName)
 	{
 		if (RequestedName ~= IRCUsers[i].Nick)
 		{
-			Client.SendIRC(RequestedName@":Nickname is already in use", "433"); // ERR_NICKNAMEINUSE
-			return false;
+			if (IRCUsers[i].bDead)
+			{
+				IRCUsers[i].Nick = ""; // kill nick but keep record
+				break;
+			}
+			else {
+				Client.SendIRC(RequestedName@":Nickname is already in use", "433"); // ERR_NICKNAMEINUSE
+				return false;
+			}
 		}
 	}
-	if (client.ClientID > 0) IRCUsers[client.ClientID].Nick = RequestedName;
+	if (client.ClientID >= 0) IRCUsers[client.ClientID].Nick = RequestedName;
 	client.sUsername = RequestedName;
+	return true;
 }
 
 /** find the IRC user record for a client */
@@ -162,41 +142,51 @@ function int GetIRCUser(GCIRC client, optional bool bDontAdd)
 /** return if a userhost is banned from a channel */
 function bool IsBanned(int ChannelId, string UserHost)
 {
-	local int i;
 	if (ChannelId < 0 || ChannelId >= Channels.length) return false;
-	for (i = 0; i < Channels[ChannelId].Bans.length; i++)
-	{
-		if (class'wString'.static.MaskedCompare(UserHost, Channels[ChannelId].Bans[i])) return true;
-	}
+	return Channels[ChannelId].IsBanned(UserHost);
 	return false;
 }
 
 /** create a channel */
-function int CreateChannel(string ChannelName, optional string Topic, optional bool bLocal, optional bool bAdmin)
+function UGIRCChannel CreateChannel(string ChannelName, optional string Topic, optional bool bLocal, optional bool bAdmin, optional bool bSpecial)
 {
 	local int i;
 	for (i = 0; i < Channels.length; i++)
 	{
-		if (Channels[i].Name ~= ChannelName) return i;
+		if (Channels[i].ChannelName ~= ChannelName) return Channels[i];
 	}
 	gateway.Logf("[CreateChannel] Creating channel:"@ChannelName, Name, gateway.LOG_EVENT);
 	Channels.length = Channels.length+1;
-	Channels[Channels.length-1].Name = ChannelName;
+	Channels[Channels.length-1] = new IRCChannelClass;
+	Channels[Channels.length-1].IRCd = self;
+	Channels[Channels.length-1].ChannelName = ChannelName;
 	Channels[Channels.length-1].Topic = Topic;
 	Channels[Channels.length-1].bLocal = bLocal;
 	Channels[Channels.length-1].bAdmin = bAdmin;
+	Channels[Channels.length-1].bSpecial = bSpecial;
 	Channels[Channels.length-1].Limit = 0;
 	Channels[Channels.length-1].Mode = "nt"; // TODO: hardcode
-	return Channels.length-1;
+	return Channels[Channels.length-1];
 }
 
 /** find the channel id */
-function int GetChannel(string ChannelName)
+function UGIRCChannel GetChannel(string ChannelName)
 {
 	local int i;
 	for (i = 0; i < Channels.length; i++)
 	{
-		if (Channels[i].Name ~= ChannelName) return i;
+		if (Channels[i].ChannelName ~= ChannelName) return Channels[i];
+	}
+	return none;
+}
+
+/** find the user id */
+function int GetNick(string Nickname)
+{
+	local int i;
+	for (i = 0; i < IRCUsers.Length; i++)
+	{
+		if (IRCUsers[i].Nick ~= Nickname) return i;
 	}
 	return -1;
 }
@@ -206,23 +196,39 @@ function int GetChannel(string ChannelName)
 */
 function BroadcastMessage(coerce string message, int id, optional GCIRC origin)
 {
-	local int i;
-	local GCIRC remoteclient;
-	gateway.Logf("[BroadcastMessage] "$message, Name, gateway.LOG_DEBUG);
-	for (i = 0; i < Channels[id].Users.length; i++)
+	Channels[id].BroadcastMessage(message, origin);
+}
+
+/** send this text to all clients that share the same channels (amsg) */
+function BroadcastMessageList(coerce string message, array<UGIRCChannel> id, optional GCIRC origin)
+{
+	local int i,j;
+	local array<int> remoteclients;
+	for (i = 0; i < id.length; i++)
 	{
-		remoteclient = IRCUsers[Channels[id].Users[i].uid].client;
-		if (remoteclient != none && remoteclient != origin)
+		for (j = 0; j < id[i].Users.length; j++)
 		{
-			gateway.Logf("[BroadcastMessage] Receiver:"@remoteclient, Name, gateway.LOG_DEBUG);
-			remoteclient.SendText(message);
+			remoteclients[remoteclients.length] = id[i].Users[j].uid;
 		}
+	}
+	if (remoteclients.length == 0) return;
+	class'wArray'.static.SortI(remoteclients);
+	j = -1;
+	for (i = 0; i < remoteclients.length; i++)
+	{
+		if (remoteclients[i] < 0) continue;
+		if (j == remoteclients[i]) continue;
+		j = remoteclients[i];
+  		if (IRCUsers[remoteclients[i]].client == origin) continue;
+  		gateway.Logf("[BroadcastMessageList] Receiver:"@IRCUsers[remoteclients[i]].client, Name, gateway.LOG_DEBUG);
+		IRCUsers[remoteclients[i]].client.SendText(message);
 	}
 }
 
 defaultproperties
 {
 	Ident="IRC/100"
-	CVSversion="$Id: GIIRCd.uc,v 1.13 2004/04/06 19:12:00 elmuerte Exp $"
+	CVSversion="$Id: GIIRCd.uc,v 1.14 2004/05/08 17:43:39 elmuerte Exp $"
 	AcceptClass=class'UnGateway.GCIRC'
+	IRCChannelClass=class'UnGateway.UGIRCChannel'
 }

@@ -1,3 +1,7 @@
+Saturday, May 08, 2004
+- IRC: /oper implementation
+- IRC:
+
 Saturday, May 01, 2004
 - Fixed bug in the auth system
 - Added admin,group and privilege commands
