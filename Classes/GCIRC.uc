@@ -2,7 +2,7 @@
 	GCIRC
 	IRC client, spawned from GIIRCd
 	RFC: 1459
-	$Id: GCIRC.uc,v 1.6 2003/09/11 22:06:12 elmuerte Exp $
+	$Id: GCIRC.uc,v 1.7 2003/09/23 07:53:59 elmuerte Exp $
 */
 class GCIRC extends UnGatewayClient;
 
@@ -11,7 +11,13 @@ var config bool bShowMotd;
 /** Message of the Day */
 var config array<string> MOTD;
 /** Maximum Channels a user can join */
-var int MaxChannels;
+var config int MaxChannels;
+/** 
+	Allow channel creation
+	Turning this on will enable remote channels, it's strongly adviced not to enable this
+	Note: remote channels are NOT supported
+*/
+var config bool bAllowCreateChannel;
 
 struct UserChannelRecord
 {
@@ -30,6 +36,7 @@ var int ClientID;
 event Accepted()
 {
 	Super.Accepted();
+	ClientID = -1;
 }
 
 /** send RAW irc reply */
@@ -50,6 +57,7 @@ function SendIRC(string data, coerce string code)
 function bool IsIn(optional string channelname, optional int id)
 {
 	local int i;
+	if (id == -1) return false;
 	if (channelname == "")
 	{
 		for (i = 0; i < Channels.length; i++)
@@ -66,13 +74,22 @@ function bool IsIn(optional string channelname, optional int id)
 	return false;
 }
 
+/** check if a channel name is valid */
+function bool checkValidChanName(string channel)
+{
+	if ((Left(channel, 1) != "#" && Left(channel, 1) != "&") || (InStr(channel, ",") > -1) || (InStr(channel, Chr(7))))
+	{
+		return false;
+	}
+	return true;
+}
+
 auto state Login
 {
 
 	function procLogin(coerce string line)
 	{
 		local array<string> input;
-		local int i;
 
 		if (split(line, " ", input) < 1) return; // always wrong
 		input[0] = caps(input[0]);
@@ -304,12 +321,64 @@ function ircExecQUIT(optional string QuitMsg, optional bool bDontClose)
 function ircExecJOIN(string channel, optional string key)
 {
 	local int i, id;
+	if (checkValidChanName(channel))
+	{
+		SendIRC(channel@":ERR_BADCHANMASK", "476"); // ERR_BADCHANMASK
+		return;
+	}
 	if (Channels.length >= MaxChannels)
 	{		
 		SendIRC(channel@":You have joined too many channels", "405"); // ERR_TOOMANYCHANNELS
 		return;
 	}
-	id = -1;
+	id = GIIRCd(Interface).GetChannel(channel);
+	if (id == -1) // create the channel
+	{
+		if (!bAllowCreateChannel)
+		{
+			SendIRC(channel@":No such channel", "403"); // ERR_NOSUCHCHANNEL
+			return;
+		}
+		else {
+			id = CreateChannel(channel);
+		}
+	}
+
+	if (IsIn(, id)) // already in this channel
+	{			
+	}
+	else {			
+		if (GIIRCd(Interface).Channels[id].Key != "" && GIIRCd(Interface).Channels[id].Key != Key)
+		{
+			SendIRC(channel@":Cannot join channel (+k)", "475"); // ERR_BADCHANNELKEY
+		}
+		else if (GIIRCd(Interface).Channels[id].Limit <= GIIRCd(Interface).Channels[id].Users.length)
+		{
+			SendIRC(channel@":Cannot join channel (+l)", "471"); // ERR_CHANNELISFULL
+		}
+		else if (GIIRCd(Interface).IsBanned(id, sUsername$"!"$sUserhost))
+		{
+			SendIRC(channel@":Cannot join channel (+b)", "474"); // ERR_BANNEDFROMCHAN
+		}
+		else if (InStr(GIIRCd(Interface).Channels[id].Mode, "i") > -1)
+		{
+			SendIRC(channel@":Cannot join channel (+i)", "473"); // ERR_INVITEONLYCHAN
+		}
+		else {
+			Channels.length = Channels.length+1;
+			Channels[Channels.length-1].Channel = id;
+			GIIRCd(Interface).Channels[id].Users.length = GIIRCd(Interface).Channels[id].Users.length+1;
+			GIIRCd(Interface).Channels[id].Users[GIIRCd(Interface).Channels[id].Users.length-1] = ClientID;
+			ircExecTOPIC(channel);
+			ircExecNAMES(channel);
+		}
+	}
+}
+
+function ircExecPART(string channel)
+{
+	local int i, id;
+	id = GIIRCd(Interface).GetChannel(channel);
 	for (i = 0; i < Channels.length; i++)
 	{
 		if (GIIRCd(Interface).Channels[Channels[i].channel].Name ~= channel)
@@ -318,55 +387,14 @@ function ircExecJOIN(string channel, optional string key)
 			break;
 		}
 	}
-	if (id == -1) // create the channel
+	if (IsIn(, id))
 	{
-		// "<channel name> :No such channel" 403 ERR_NOSUCHCHANNEL
-		//Channels.length = Channels.length+1;
-		//Channels[Channels.length-1].Channel = GIIRCd(Interface).CreateChannel(channel);
+		// partChannel(id, self);
+		// partChannel( channel id, client, bNoBroadcast );
 	}
 	else {
-		if (IsIn(, id)) // already in this channel
-		{			
-		}
-		else {			
-			if (GIIRCd(Interface).Channels[id].Key != "" && GIIRCd(Interface).Channels[id].Key != Key)
-			{
-				// incorrect key
-				// 475     ERR_BADCHANNELKEY
-        //                "<channel> :Cannot join channel (+k)"
-			}
-			else if (GIIRCd(Interface).Channels[id].Limit <= GIIRCd(Interface).Channels[id].Users.length)
-			{
-				// channel full
-				// 471     ERR_CHANNELISFULL
-        //                "<channel> :Cannot join channel (+l)"
-			}
-			else if (GIIRCd(Interface).IsBanned(id, sUsername$"!"$sUserhost))
-			{
-				// is banned
-				//474     ERR_BANNEDFROMCHAN
-        //                "<channel> :Cannot join channel (+b)"
-			}
-			else if (InStr(GIIRCd(Interface).Channels[id].Mode, "i") > -1)
-			{
-				//473     ERR_INVITEONLYCHAN
-        //                "<channel> :Cannot join channel (+i)"
-			}
-			else {
-				Channels.length = Channels.length+1;
-				Channels[Channels.length-1].Channel = id;
-				GIIRCd(Interface).Channels[id].Users.length = GIIRCd(Interface).Channels[id].Users.length+1;
-				GIIRCd(Interface).Channels[id].Users[GIIRCd(Interface).Channels[id].Users.length-1] = ClientID;
-				ircExecTOPIC(channel);
-				ircExecNAMES(channel);
-			}
-		}
+		// not on channel
 	}
-}
-
-function ircExecPART(string channel)
-{
-	//..
 }
 
 function ircExecMODE(array<string> args)
@@ -378,11 +406,6 @@ function ircExecTOPIC(string channel, optional string newTopic)
 {
 	local int id;
 	id = GIIRCd(Interface).GetChannel(channel);
-	if (id == -1)
-	{
-		SendIRC(channel@":You're not on that channel", "442"); // ERR_NOTONCHANNEL
-		return;
-	}
 	if (!IsIn(, id))
 	{
 		SendIRC(channel@":You're not on that channel", "442"); // ERR_NOTONCHANNEL
@@ -449,6 +472,7 @@ defaultproperties
 {
 	bShowMotd=true
 	MaxChannels=2
+	bAllowCreateChannel=false
 
 	MOTD[0]=""
 	MOTD[1]="                               _gp-!NXs<_=.=<d+~.,     _ "

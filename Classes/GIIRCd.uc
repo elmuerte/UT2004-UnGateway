@@ -1,7 +1,7 @@
 /**
 	GIIRCd
 	IRC server
-	$Id: GIIRCd.uc,v 1.7 2003/09/11 22:06:12 elmuerte Exp $
+	$Id: GIIRCd.uc,v 1.8 2003/09/23 07:53:59 elmuerte Exp $
 */
 class GIIRCd extends UnGatewayInterface;
 
@@ -39,7 +39,7 @@ function Create(GatewayDaemon gwd)
 {
 	Super.Create(gwd);
 	CreateChannel("&admin",, true, true);
-	CreateChannel("#"$gateway.hostaddress$"_"$Level.Game.GetServerPort(), Level.Game.ServerName@"-"@Level.Game.GameName@"-"@Level.Title);
+	CreateChannel("#"$gateway.hostaddress$"_"$Level.Game.GetServerPort(), Level.Game.GameReplicationInfo.ServerName@"-"@Level.Game.GameName@"-"@Level.Title);
 }
 
 function GainedClient(UnGatewayClient client)
@@ -61,9 +61,9 @@ function LostClient(UnGatewayClient client)
 		if (Clients[i] == GCIRC(client))
 		{
 			GCIRC(client).ircExecQuit(, false); // just to broadcast
-			IRCUsers[client.ClientID].bDead = true;
-			IRCUsers[client.ClientID].Client = none;
-			IRCUsers[client.ClientID].PC = none;
+			IRCUsers[GCIRC(client).ClientID].bDead = true;
+			IRCUsers[GCIRC(client).ClientID].Client = none;
+			IRCUsers[GCIRC(client).ClientID].PC = none;
 			Clients.Remove(i, 1);
 			return;
 		}
@@ -94,7 +94,7 @@ function bool CheckNickName(GCIRC client, string RequestedName)
 			return false;
 		}
 	}	
-	IRCUsers[client.ClientID].Nick = RequestedName;
+	if (client.ClientID > 0) IRCUsers[client.ClientID].Nick = RequestedName;
 	client.sUsername = RequestedName;
 }
 
@@ -134,6 +134,7 @@ function int CreateChannel(string ChannelName, optional string Topic, optional b
 	Channels[Channels.length-1].Topic = Topic;
 	Channels[Channels.length-1].bLocal = bLocal;
 	Channels[Channels.length-1].bAdmin = bAdmin;
+	Channels[Channels.length-1].Limit = 9999; // TODO: set max chan size
 	return Channels.length-1;
 }
 
