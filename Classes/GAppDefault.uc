@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GAppDefault.uc,v 1.4 2004/04/14 13:39:18 elmuerte Exp $ -->
+	<!-- $Id: GAppDefault.uc,v 1.5 2004/04/15 07:56:54 elmuerte Exp $ -->
 *******************************************************************************/
 class GAppDefault extends UnGatewayApplication;
 
@@ -16,6 +16,8 @@ var localized string HelpNewline;
 
 var localized string msgHelpUsage, msgIsAlias, msgNoHelp, msgNoSuchCommand,
 	msgListUsage, msgLCommands, msgLPort, msgLClients, msgLUsername, msgLAddress;
+
+var localized string CommandHelp[3];
 
 function bool ExecCmd(UnGatewayClient client, array<string> cmd)
 {
@@ -29,6 +31,16 @@ function bool ExecCmd(UnGatewayClient client, array<string> cmd)
 		case Commands[2].Name: client.OnLogout(); return true;
 	}
 	return false;
+}
+
+function string GetHelpFor(string Command)
+{
+	local int i;
+	for (i = 0; i < Commands.length; i++)
+	{
+		if (Commands[i].Name ~= Command) return CommandHelp[i];
+	}
+	return "";
 }
 
 function execHelp(UnGatewayClient client, array<string> cmd)
@@ -135,11 +147,15 @@ function execList(UnGatewayClient client, array<string> cmd)
 
 defaultproperties
 {
-	innerCVSversion="$Id: GAppDefault.uc,v 1.4 2004/04/14 13:39:18 elmuerte Exp $"
+	innerCVSversion="$Id: GAppDefault.uc,v 1.5 2004/04/15 07:56:54 elmuerte Exp $"
 	HelpNewline="ÿ"
-	Commands[0]=(Name="help",Help="Show help about commandsÿUsage: help <command>")
-	Commands[1]=(Name="list",Help="Show various lists.\ncmd	show registered commandsÿapp	show loaded applicationsÿif	show loaded interfacesÿclient	show connected clients")
-	Commands[2]=(Name="quit",Help="Logout")
+	Commands[0]=(Name="help")
+	Commands[1]=(Name="list")
+	Commands[2]=(Name="quit")
+
+	CommandHelp[0]="Show help about commandsÿUsage: help <command>"
+	CommandHelp[1]="Show various lists.\ncmd	show registered commandsÿapp	show loaded applicationsÿif	show loaded interfacesÿclient	show connected clients"
+	CommandHelp[2]="Logout"
 
 	msgHelpUsage="Usage: help <command>"
 	msgIsAlias="%alias is an alias for: %cmd"

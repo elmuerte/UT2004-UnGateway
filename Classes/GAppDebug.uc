@@ -8,9 +8,11 @@
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
 
-	<!-- $Id: GAppDebug.uc,v 1.17 2004/04/14 15:34:32 elmuerte Exp $ -->
+	<!-- $Id: GAppDebug.uc,v 1.18 2004/04/15 07:56:54 elmuerte Exp $ -->
 *******************************************************************************/
 class GAppDebug extends UnGatewayApplication;
+
+var localized string CommandHelp[3];
 
 function bool ExecCmd(UnGatewayClient client, array<string> cmd)
 {
@@ -24,6 +26,16 @@ function bool ExecCmd(UnGatewayClient client, array<string> cmd)
 		case Commands[2].Name: execConsole(client, cmd); return true;
 	}
 	return false;
+}
+
+function string GetHelpFor(string Command)
+{
+	local int i;
+	for (i = 0; i < Commands.length; i++)
+	{
+		if (Commands[i].Name ~= Command) return CommandHelp[i];
+	}
+	return "";
 }
 
 function execEcho(UnGatewayClient client, array<string> cmd)
@@ -65,8 +77,12 @@ function execConsole(UnGatewayClient client, array<string> cmd)
 
 defaultproperties
 {
-	innerCVSversion="$Id: GAppDebug.uc,v 1.17 2004/04/14 15:34:32 elmuerte Exp $"
-	Commands[0]=(Name="echo",Help="Returns it's first argumentÿUsage: echo \"some text\"")
-	Commands[1]=(Name="test",Help="Various tests")
-	Commands[2]=(Name="console",Help="Execute a console command",Permission="Xc")
+	innerCVSversion="$Id: GAppDebug.uc,v 1.18 2004/04/15 07:56:54 elmuerte Exp $"
+	Commands[0]=(Name="echo")
+	Commands[1]=(Name="test")
+	Commands[2]=(Name="console",Permission="Xc")
+
+	CommandHelp[0]="Returns it's first argumentÿUsage: echo \"some text\""
+	CommandHelp[1]="Various tests"
+	CommandHelp[2]="Execute a console command"
 }

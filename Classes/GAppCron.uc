@@ -8,7 +8,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GAppCron.uc,v 1.3 2004/04/13 16:04:39 elmuerte Exp $ -->
+	<!-- $Id: GAppCron.uc,v 1.4 2004/04/15 07:56:54 elmuerte Exp $ -->
 *******************************************************************************/
 
 class GAppCron extends UnGatewayApplication config;
@@ -25,6 +25,8 @@ var localized string msgNoDaemon, msgDisabled, msgCronAddUsage, msgValidTypes,
 	msgInvalidFormat, msgCronAdded, msgAddedBy, msgCronDelUsage, msgInvalidIndex,
 	msgCronRemoved, msgCronDisableUsage, msgEntryDisabled, msgCronEnableUsage,
 	msgCronEnabled;
+
+var localized string CommandHelp[5];
 
 function Create()
 {
@@ -59,6 +61,16 @@ function bool ExecCmd(UnGatewayClient client, array<string> cmd)
 		case Commands[4].Name: execEnable(client, cmd); return true;
 	}
 	return false;
+}
+
+function string GetHelpFor(string Command)
+{
+	local int i;
+	for (i = 0; i < Commands.length; i++)
+	{
+		if (Commands[i].Name ~= Command) return CommandHelp[i];
+	}
+	return "";
 }
 
 function execList(UnGatewayClient client, array<string> cmd)
@@ -202,11 +214,17 @@ function execEnable(UnGatewayClient client, array<string> cmd)
 defaultproperties
 {
 	CronClass="UnGateway.Cron"
-	Commands[0]=(Name="cronlist",Help="List the cron table",Level=254)
-	Commands[1]=(Name="cronadd",Help="Add a new item to the cron tableÿUsage: cronadd <type> <time config> <command ...>",Level=255)
-	Commands[2]=(Name="crondel",Help="Delete a entry in the cron tableÿUsage: crondel <index>",Level=255)
-	Commands[3]=(Name="crondisable",Help="Disable a cron table entryÿUsage: crondisable <index> ...",Level=255)
-	Commands[4]=(Name="cronenable",Help="Enable a cron table entryÿUsage: cronenable <index> ...",Level=255)
+	Commands[0]=(Name="cronlist",Level=254)
+	Commands[1]=(Name="cronadd",Level=255)
+	Commands[2]=(Name="crondel",Level=255)
+	Commands[3]=(Name="crondisable",Level=255)
+	Commands[4]=(Name="cronenable",Level=255)
+
+	CommandHelp[0]="List the cron table"
+	CommandHelp[1]="Add a new item to the cron tableÿUsage: cronadd <type> <time config> <command ...>"
+	CommandHelp[2]="Delete a entry in the cron tableÿUsage: crondel <index>"
+	CommandHelp[3]="Disable a cron table entryÿUsage: crondisable <index> ..."
+	CommandHelp[4]="Enable a cron table entryÿUsage: cronenable <index> ..."
 
 	msgNoDaemon="No cron daemon found"
 	msgDisabled="disabled"

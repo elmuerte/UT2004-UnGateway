@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UnGatewayApplication.uc,v 1.9 2004/04/13 16:04:39 elmuerte Exp $ -->
+	<!-- $Id: UnGatewayApplication.uc,v 1.10 2004/04/15 07:56:54 elmuerte Exp $ -->
 *******************************************************************************/
 class UnGatewayApplication extends Object within GatewayDaemon abstract;
 
@@ -18,7 +18,6 @@ var const string innerCVSversion;
 struct CommandInfo
 {
 	var string Name;
-	var localized string Help;
 	/** security level required for this command */
 	var byte Level;
 	/** permission required for this command */
@@ -38,7 +37,7 @@ function Create()
 		CmdLookupTable.length = CmdLookupTable.length+1;
 		CmdLookupTable[CmdLookupTable.length-1].App = Self;
 		CmdLookupTable[CmdLookupTable.length-1].Command = Commands[i].Name;
-		CmdLookupTable[CmdLookupTable.length-1].bHasHelp = (Commands[i].Help != "");
+		CmdLookupTable[CmdLookupTable.length-1].bHasHelp = GetHelpFor(Commands[i].Name) != "";
 		CmdLookupTable[CmdLookupTable.length-1].Level = Commands[i].Level;
 		CmdLookupTable[CmdLookupTable.length-1].Permission = Commands[i].Permission;
 	}
@@ -59,14 +58,9 @@ function bool CanClose(UnGatewayClient client)
 	return true;
 }
 
-/** return help string */
+/** return help string, should be overwritten by subclasses */
 function string GetHelpFor(string Command)
 {
-	local int i;
-	for (i = 0; i < Commands.length; i++)
-	{
-		if (Commands[i].Name ~= Command) return Commands[i].Help;
-	}
 	return "";
 }
 
@@ -142,5 +136,5 @@ static function string quotefix(string in, optional bool bUnfix)
 
 defaultproperties
 {
-	innerCVSversion="$Id: UnGatewayApplication.uc,v 1.9 2004/04/13 16:04:39 elmuerte Exp $"
+	innerCVSversion="$Id: UnGatewayApplication.uc,v 1.10 2004/04/15 07:56:54 elmuerte Exp $"
 }
