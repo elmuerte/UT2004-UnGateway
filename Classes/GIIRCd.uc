@@ -1,50 +1,81 @@
-/**
-	GIIRCd
-	IRC server
-	$Id: GIIRCd.uc,v 1.11 2004/01/02 09:19:24 elmuerte Exp $
-*/
+/*******************************************************************************
+	GIIRCd																		<br />
+	IRC server																	<br />
+																				<br />
+	Authors:	Michiel 'El Muerte' Hendriks &lt;elmuerte@drunksnipers.com&gt;	<br />
+																				<br />
+	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
+	Released under the Lesser Open Unreal Mod License							<br />
+	http://wiki.beyondunreal.com/wiki/LesserOpenUnrealModLicense				<br />
+	<!-- $Id: GIIRCd.uc,v 1.12 2004/04/06 18:58:11 elmuerte Exp $ -->
+*******************************************************************************/
 class GIIRCd extends UnGatewayInterface;
 
 /** we need to keep a record of clients here */
 var array<GCIRC> Clients;
 
+/** IRC user record, every user on the IRC server and in game should have it's own record */
 struct IRCUserRecord
 {
+	/** the nickname used */
 	var string Nick;
+	/** username@hostname */
 	var string Userhost;
+	/** real name */
 	var string RealName;
+	/** irc user mode */
 	var string Mode;
+	/** the player controller associated with this user */
 	var PlayerController PC;
+	/** the IRC client connection */
 	var GCIRC client;
-	var bool bDead; // for disconnected clients (also whowas)
+	/** for disconnected clients (also whowas) */
+	var bool bDead;
 };
+/** list with irc users, connected or dead */
 var array<IRCUserRecord> IRCUsers;
 
+/** information about a user in a channel */
 struct ChannelUserRecord
 {
+	/** ID in the IRCUsers table */
 	var int uid;
 	var bool bOp;
 	var bool bVoice;
 	var bool bHalfOp;
 };
 
+/** channel record */
 struct LocalChannelRecord
 {
-	var string Name;		// channel name
-	var string Topic;		// channel topic
+	/** channel name */
+	var string Name;
+	/** channel topic */
+	var string Topic;
+	/** timestamp when this topic was set */
 	var int Topictime;
-	var bool bLocal;		// local only
-	var bool bAdmin;		// is admin channel
+	/** local only, only exists on this server */
+	var bool bLocal;
+	/** is admin channel */
+	var bool bAdmin;
+	/** channel mode */
 	var string Mode;
+	/** the key required to join this channel */
 	var string Key;
+	/** the user limit for this channel */
 	var int Limit;
+	/** channel creation time */
 	var int TimeStamp;
+	/** bans set in this channel */
 	var array<string> Bans;
-	var array<ChannelUserRecord> Users; // pointer to the IRCUsers list
-	var bool bDead; // for disconnected clients (also whowas)
+	/** information about the users in this channel */
+	var array<ChannelUserRecord> Users;
+	//var bool bDead; // for disconnected clients (also whowas) ??
 };
+/** registered channels */
 var array<LocalChannelRecord> Channels;
 
+/** create the initial channels */
 function Create(GatewayDaemon gwd)
 {
 	Super.Create(gwd);
@@ -52,6 +83,7 @@ function Create(GatewayDaemon gwd)
 	CreateChannel("#"$gateway.hostaddress$"_"$Level.Game.GetServerPort(), Level.Game.GameReplicationInfo.ServerName@"-"@Level.Game.GameName@"-"@Level.Title);
 }
 
+/** register the new client */
 function GainedClient(UnGatewayClient client)
 {
 	local int i;
@@ -63,6 +95,7 @@ function GainedClient(UnGatewayClient client)
 	Clients[Clients.length-1] = GCIRC(client);
 }
 
+/** remove this client from our internal list */
 function LostClient(UnGatewayClient client)
 {
 	local int i;
@@ -190,6 +223,6 @@ function BroadcastMessage(coerce string message, int id, optional GCIRC origin)
 defaultproperties
 {
 	Ident="IRC/100"
-	CVSversion="$Id: GIIRCd.uc,v 1.11 2004/01/02 09:19:24 elmuerte Exp $"
+	CVSversion="$Id: GIIRCd.uc,v 1.12 2004/04/06 18:58:11 elmuerte Exp $"
 	AcceptClass=class'UnGateway.GCIRC'
 }

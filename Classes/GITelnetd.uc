@@ -1,14 +1,20 @@
-/**
-	GITelnetd
-	Telnet server
-	$Id: GITelnetd.uc,v 1.2 2004/01/02 09:19:24 elmuerte Exp $
-*/
+/*******************************************************************************
+	GITelnetd																	<br />
+	Telnet server																<br />
+																				<br />
+	Authors:	Michiel 'El Muerte' Hendriks &lt;elmuerte@drunksnipers.com&gt;	<br />
+																				<br />
+	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
+	Released under the Lesser Open Unreal Mod License							<br />
+	http://wiki.beyondunreal.com/wiki/LesserOpenUnrealModLicense				<br />
+	<!-- $Id: GITelnetd.uc,v 1.3 2004/04/06 18:58:11 elmuerte Exp $ -->
+*******************************************************************************/
 class GITelnetd extends UnGatewayInterface;
 
 defaultproperties
 {
 	Ident="Telnet/100"
-	CVSversion="$Id: GITelnetd.uc,v 1.2 2004/01/02 09:19:24 elmuerte Exp $"
+	CVSversion="$Id: GITelnetd.uc,v 1.3 2004/04/06 18:58:11 elmuerte Exp $"
 	AcceptClass=class'UnGateway.GCTelnet'
 	RequestedLinkMode=MODE_Binary
 }

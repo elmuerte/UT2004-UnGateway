@@ -1,29 +1,36 @@
-/**
-	GCIRC
-	IRC client, spawned from GIIRCd
-	RFC: 1459
-	$Id: GCIRC.uc,v 1.11 2004/01/02 09:19:24 elmuerte Exp $
-*/
+/*******************************************************************************
+	GCIRC																		<br />
+	IRC client, spawned from GIIRCd												<br />
+	RFC: 1459																	<br />
+																				<br />
+	Authors:	Michiel 'El Muerte' Hendriks &lt;elmuerte@drunksnipers.com&gt;	<br />
+																				<br />
+	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
+	Released under the Lesser Open Unreal Mod License							<br />
+	http://wiki.beyondunreal.com/wiki/LesserOpenUnrealModLicense				<br />
+	<!-- $Id: GCIRC.uc,v 1.12 2004/04/06 18:58:11 elmuerte Exp $ -->
+*******************************************************************************/
 class GCIRC extends UnGatewayClient;
 
 /** Show the message of the day on login */
-var config bool bShowMotd;
+var(Config) config bool bShowMotd;
 /** Message of the Day */
-var config array<string> MOTD;
+var(Config) config array<string> MOTD;
 /** Maximum Channels a user can join */
-var config int MaxChannels;
+var(Config) config int MaxChannels;
 /**
 	Allow channel creation
 	Turning this on will enable remote channels, it's strongly adviced not to enable this
 	Note: remote channels are NOT supported
 */
-var config bool bAllowCreateChannel;
+var(Config) config bool bAllowCreateChannel;
 
 /** listening on the channels this client is in */
 var array<int> Channels;
 
 /** userhost string: username@hostname*/
 var string sUserhost;
+/** users "realname" as claimed during registration */
 var string sRealname;
 /** the message to broadcast */
 var string QuitMessage;
@@ -31,12 +38,7 @@ var string QuitMessage;
 /** pointer to this clients entry in the IRC user list */
 var int ClientID;
 
-event Accepted()
-{
-	Super.Accepted();
-	ClientID = -1;
-}
-
+/** connection closed, clean up and announce to the server */
 event Closed()
 {
 	local int i;
@@ -61,8 +63,8 @@ function SendIRC(string data, coerce string code)
 }
 
 /**
-	return true if this user is in the channel
-	using the channel record pointer is faster
+	Return true if this user is in the channel.
+	Using the channel record pointer is faster
 */
 function bool IsIn(optional string channelname, optional int id)
 {
@@ -94,9 +96,9 @@ function bool checkValidChanName(string channel)
 	return true;
 }
 
+/** user is logging in */
 auto state Login
 {
-
 	function procLogin(coerce string line)
 	{
 		local array<string> input;
@@ -145,6 +147,7 @@ begin:
 	OnReceiveLine=procLogin;
 }
 
+/** user has logged in */
 state Loggedin
 {
 	function procIRC(coerce string line)
@@ -308,6 +311,7 @@ begin:
 
 ///////////////////////////////// IRC COMMANDS /////////////////////////////////
 
+/** Send the message of the day to the user */
 function ircExecMOTD()
 {
 	local int i;
@@ -331,6 +335,7 @@ function ircExecMOTD()
 	SendIRC(":End of MOTD command.", "376");
 }
 
+/** quit the IRC server */
 function ircExecQUIT(optional string QuitMsg)
 {
 	if (QuitMsg == "") QuitMsg = sUsername;
@@ -338,6 +343,7 @@ function ircExecQUIT(optional string QuitMsg)
 	if (LinkState == STATE_Connected) Close();
 }
 
+/** join a channel */
 function ircExecJOIN(string channel, optional string key)
 {
 	local int id;
@@ -402,6 +408,7 @@ function ircExecJOIN(string channel, optional string key)
 	}
 }
 
+/** part a channel */
 function ircExecPART(string channel)
 {
 	local int i, id;
@@ -431,6 +438,7 @@ function ircExecPART(string channel)
 	}
 }
 
+/** get or set a channel or user mode */
 function ircExecMODE(array<string> args)
 {
 	local int id;
@@ -466,6 +474,7 @@ function ircExecMODE(array<string> args)
 	}
 }
 
+/** get or set the channel topic */
 function ircExecTOPIC(string channel, optional string newTopic, optional int id)
 {
 	if (channel != "") id = GIIRCd(Interface).GetChannel(channel);
@@ -489,6 +498,7 @@ function ircExecTOPIC(string channel, optional string newTopic, optional int id)
 	}
 }
 
+/** get the names list of a channel */
 function ircExecNAMES(optional string channel, optional int id)
 {
 	local int i;
@@ -517,6 +527,7 @@ function ircExecNAMES(optional string channel, optional int id)
 	SendIRC(GIIRCd(Interface).Channels[id].Name@":End of /NAMES list", "366"); // RPL_ENDOFNAMES
 }
 
+/** return the version information about a server */
 function ircExecVERSION(optional string server)
 {
 	if (server == "")
@@ -529,6 +540,7 @@ function ircExecVERSION(optional string server)
 	}
 }
 
+/** send a message to a user or channel */
 function ircExecPRIVMSG(string receipt, string text)
 {
 	local int id;
@@ -547,11 +559,13 @@ function ircExecPRIVMSG(string receipt, string text)
 	}
 }
 
+/** send a notice */
 function ircExecNOTICE(string receipt, string text)
 {
 	//`...
 }
 
+/** request information about a user/usermask */
 function ircExecWHO(optional string mask, optional bool bOnlyOps)
 {
 	local int id, i, uid;
@@ -585,11 +599,13 @@ function ircExecWHO(optional string mask, optional bool bOnlyOps)
 	SendIRC(mask@":End of /WHO list", "315"); // RPL_ENDOFWHO
 }
 
+/** kill a client */
 function ircExecKILL(string nick, string message)
 {
 	//...
 }
 
+/** list all channels on the server */
 function ircExecLIST(optional string mask)
 {
 	local int i;
@@ -606,7 +622,8 @@ function ircExecLIST(optional string mask)
 
 defaultproperties
 {
-	CVSversion="$Id: GCIRC.uc,v 1.11 2004/01/02 09:19:24 elmuerte Exp $"
+	ClientID=-1
+	CVSversion="$Id: GCIRC.uc,v 1.12 2004/04/06 18:58:11 elmuerte Exp $"
 	bShowMotd=true
 	MaxChannels=2
 	bAllowCreateChannel=false

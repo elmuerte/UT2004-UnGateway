@@ -1,13 +1,19 @@
-/**
-	UnGatewayAuth
-	Base authentication class, this is used for user authentication
-	$Id: UnGatewayAuth.uc,v 1.2 2004/01/02 09:19:24 elmuerte Exp $
-*/
+/*******************************************************************************
+	UnGatewayAuth																<br />
+	Base authentication class, this is used for user authentication				<br />
+																				<br />
+	Authors:	Michiel 'El Muerte' Hendriks &lt;elmuerte@drunksnipers.com&gt;	<br />
+																				<br />
+	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
+	Released under the Lesser Open Unreal Mod License							<br />
+	http://wiki.beyondunreal.com/wiki/LesserOpenUnrealModLicense				<br />
+	<!-- $Id: UnGatewayAuth.uc,v 1.3 2004/04/06 18:58:11 elmuerte Exp $ -->
+*******************************************************************************/
 class UnGatewayAuth extends Info abstract;
 
 /** CVS Id string */
 var const string CVSversion;
-
+/** pointer to main daemon */
 var GatewayDaemon gateway;
 
 /** Called after the object has been created */
@@ -31,5 +37,5 @@ function bool Logout(UnGatewayClient interface)
 
 defaultproperties
 {
-	CVSversion="$Id: UnGatewayAuth.uc,v 1.2 2004/01/02 09:19:24 elmuerte Exp $"
+	CVSversion="$Id: UnGatewayAuth.uc,v 1.3 2004/04/06 18:58:11 elmuerte Exp $"
 }

@@ -1,21 +1,34 @@
-/**
-	UnGatewayClient
-	client for TCP based services linked in the Gateway system
-	$Id: UnGatewayClient.uc,v 1.11 2004/01/02 11:30:55 elmuerte Exp $
-*/
+/*******************************************************************************
+	UnGatewayClient																<br />
+	client for TCP based services linked in the Gateway system					<br />
+																				<br />
+	Authors:	Michiel 'El Muerte' Hendriks &lt;elmuerte@drunksnipers.com&gt;	<br />
+																				<br />
+	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
+	Released under the Lesser Open Unreal Mod License							<br />
+	http://wiki.beyondunreal.com/wiki/LesserOpenUnrealModLicense				<br />
+	<!-- $Id: UnGatewayClient.uc,v 1.12 2004/04/06 18:58:11 elmuerte Exp $ -->
+*******************************************************************************/
 class UnGatewayClient extends TCPLink abstract config;
 
 /** CVS Id string */
 var const string CVSversion;
-
+/** the interface this class belongs to */
 var UnGatewayInterface Interface;
+/** the controller class to spawn to represent this TCP client in game */
 var class<UnGatewayPlayer> PlayerControllerClass;
+/** thr in game representation */
 var UnGatewayPlayer PlayerController;
 
+/** login tries */
 var protected int LoginTries;
+/** input buffer */
 var protected string inbuffer;
+/** the username used to authenticate with */
 var string sUsername;
+/** the password used */
 var protected string sPassword;
+/** the client's address */
 var string ClientAddress;
 
 /** called when binary input is received */
@@ -160,46 +173,8 @@ function int AdvSplit(string input, string delim, out array<string> elm, optiona
 	return elm.length;
 }
 
-/*
-// UT2003 Compatibility functions
-
-function string repl(string Source, string Replace, coerse string With)
-{
-	// waring: case sensitive
-	local int i;
-	local string Input;
-
-	if ( Source == "" || Replace == "" ) return;
-
-	Input = Source;
-	Source = "";
-	i = InStr(Input, Replace);
-	while(i != -1)
-	{
-		Source = Source $ Left(Input, i) $ With;
-		Input = Mid(Input, i + Len(Replace));
-		i = InStr(Input, Replace);
-	}
-	Source = Source $ Input;
-	return Source;
-}
-
-static final operator(44) string $= ( out	string A, coerce string B )
-{
-	A = A$B;
-	return A;
-}
-
-static final operator(44) string @= ( out string A, coerce string B )
-{
-	A = A@B;
-	return A;
-}
-
-*/
-
 defaultproperties
 {
 	PlayerControllerClass=class'UnGateway.UnGatewayPlayer'
-	CVSversion="$Id: UnGatewayClient.uc,v 1.11 2004/01/02 11:30:55 elmuerte Exp $"
+	CVSversion="$Id: UnGatewayClient.uc,v 1.12 2004/04/06 18:58:11 elmuerte Exp $"
 }

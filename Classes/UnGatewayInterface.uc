@@ -1,14 +1,22 @@
-/**
-	UnGatewayInterface
-	Interface for TCP based services linked in the Gateway system
-	$Id: UnGatewayInterface.uc,v 1.3 2004/01/02 09:19:24 elmuerte Exp $
-*/
+/*******************************************************************************
+	UnGatewayInterface															<br />
+	Interface for TCP based services linked in the Gateway system				<br />
+																				<br />
+	Authors:	Michiel 'El Muerte' Hendriks &lt;elmuerte@drunksnipers.com&gt;	<br />
+																				<br />
+	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
+	Released under the Lesser Open Unreal Mod License							<br />
+	http://wiki.beyondunreal.com/wiki/LesserOpenUnrealModLicense				<br />
+	<!-- $Id: UnGatewayInterface.uc,v 1.4 2004/04/06 18:58:11 elmuerte Exp $ -->
+*******************************************************************************/
 class UnGatewayInterface extends TcpLink abstract config;
 
+/** the owning daemon */
 var GatewayDaemon gateway;
 
-var config int iListenPort;
-var config bool bUseNextAvailable;
+/** the port to listen on */
+var(Config) config int iListenPort;
+var(Config) config bool bUseNextAvailable;
 
 /** requested receive mode to set */
 var EReceiveMode RequestedReceiveMode;
@@ -18,7 +26,7 @@ var ELinkMode RequestedLinkMode;
 /** current number of client connections open */
 var int clientCount;
 /** maximum number of client connections that may be open */
-var config int iMaxClients;
+var(Config) config int iMaxClients;
 
 /**
 	identifier of the interface
@@ -114,5 +122,5 @@ defaultproperties
 	RequestedReceiveMode=RMODE_Event
 	RequestedLinkMode=MODE_Line
 	iMaxClients=10
-	CVSversion="$Id: UnGatewayInterface.uc,v 1.3 2004/01/02 09:19:24 elmuerte Exp $"
+	CVSversion="$Id: UnGatewayInterface.uc,v 1.4 2004/04/06 18:58:11 elmuerte Exp $"
 }

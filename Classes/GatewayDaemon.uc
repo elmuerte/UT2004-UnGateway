@@ -1,37 +1,48 @@
-/**
-	GatewayDaemon
-	Central Server
-	$Id: GatewayDaemon.uc,v 1.4 2004/01/03 10:44:06 elmuerte Exp $
-*/
+/*******************************************************************************
+	GatewayDaemon																<br />
+	Central Server																<br />
+																				<br />
+	Authors:	Michiel 'El Muerte' Hendriks &lt;elmuerte@drunksnipers.com&gt;	<br />
+																				<br />
+	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
+	Released under the Lesser Open Unreal Mod License							<br />
+	http://wiki.beyondunreal.com/wiki/LesserOpenUnrealModLicense				<br />
+	<!-- $Id: GatewayDaemon.uc,v 1.5 2004/04/06 18:58:11 elmuerte Exp $ -->
+*******************************************************************************/
 class GatewayDaemon extends Info config;
 
 /** log levels */
 var const byte LOG_ERR, LOG_WARN, LOG_INFO, LOG_EVENT, LOG_DEBUG;
 
 /** current log level */
-var const config byte Verbose;
+var(Config) const globalconfig byte Verbose;
 
-/** Authentication class */
-var config string AuthClass;
+/** Authentication class used */
+var(Config) globalconfig string AuthClass;
+/** the authentication class instance */
 var UnGatewayAuth Auth;
 
 /** Interfaces to launch on startup */
-var config array<string> InterfaceClasses;
+var(Config) config array<string> InterfaceClasses;
 var array<UnGatewayInterface> Interfaces;
 
-/** Applications */
-var config array<string> ApplicationClasses;
+/** Applications classes to be loaded on startup */
+var(Config) config array<string> ApplicationClasses;
+/** the application instances */
 var array<UnGatewayApplication> Applications;
 
+/** command lookup table entry */
 struct CommandReference
 {
+	/** the application instance that accepts the command */
 	var UnGatewayApplication App;
+	/** the command */
 	var string Command;
+	/** true if it has a help string/manual page */
 	var bool bHasHelp;
 };
 /** lookup table to find the app that has the command */
 var array<CommandReference> CmdLookupTable;
-
 
 /** system identifier */
 var const string Ident;
@@ -123,7 +134,7 @@ function Logf(coerce string Msg, name LogName, byte Level)
 }
 
 /**
-	execute a command
+	Execute a command.
 	if bTryConsole is false (recommended) don't try to execute the command on the console.
 */
 function bool ExecCommand(UnGatewayClient client, array<string> cmd, optional bool bTryConsole)
@@ -163,5 +174,5 @@ defaultproperties
 
 	AuthClass="UnGateway.GAuthSystem"
 	Ident="UnGateway/100"
-	CVSversion="$Id: GatewayDaemon.uc,v 1.4 2004/01/03 10:44:06 elmuerte Exp $"
+	CVSversion="$Id: GatewayDaemon.uc,v 1.5 2004/04/06 18:58:11 elmuerte Exp $"
 }

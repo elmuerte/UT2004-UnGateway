@@ -1,10 +1,17 @@
-/**
-	GCTelnet																		<br />
-	Telnet client, spawned from GITelnetd											<br />
-	Note: windows telnet client should use ANSI not VT100							<br />
-	RFC: 318, 513, 764, 854, 855, 857, 858, 859, 884, 930, 1073, 1091, 1116, 1572	<br />
-	$Id: GCTelnet.uc,v 1.10 2004/01/03 10:44:06 elmuerte Exp $						<br />
-*/
+/*******************************************************************************
+	GCTelnet																	<br />
+	Telnet client, spawned from GITelnetd										<br />
+	Note: the MS windows telnet client should use ANSI not VT100				<br />
+	RFC: 318, 513, 764, 854, 855, 857, 858, 859, 884, 930, 1073, 1091, 1116,
+	1572																		<br />
+																				<br />
+	Authors:	Michiel 'El Muerte' Hendriks &lt;elmuerte@drunksnipers.com&gt;	<br />
+																				<br />
+	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
+	Released under the Lesser Open Unreal Mod License							<br />
+	http://wiki.beyondunreal.com/wiki/LesserOpenUnrealModLicense				<br />
+	<!-- $Id: GCTelnet.uc,v 1.11 2004/04/06 18:58:11 elmuerte Exp $	-->
+*******************************************************************************/
 class GCTelnet extends UnGatewayClient;
 
 /** Telnet command: "Interpret as Command" */
@@ -88,21 +95,21 @@ var bool bEcho;
 /** command promp */
 var string CommandPrompt;
 /** maximum number of login tries before the connection will be closed */
-var config int iMaxLogin;
+var(Config) config int iMaxLogin;
 /** initial delay before printing login request */
-var config float fDelayInitial;
+var(Config) config float fDelayInitial;
 /** delay after an incorrect login */
-var config float fDelayWrongPassword;
+var(Config) config float fDelayWrongPassword;
 /**
 	disable authentication, anonymous access allowed
 	NEVER USE THIS, change the gateway's authentication class instead
 */
-var config bool bDisableAuth;
+var(Config) config bool bDisableAuth;
 /**
 	when set to true the internal pager will be used if there's more output
 	than there are lines available on the screen
 */
-var config bool bEnablePager;
+var(Config) config bool bEnablePager;
 
 /** cursor position: x,y, init-x */
 var protected int cursorpos[3];
@@ -239,8 +246,8 @@ event Accepted()
 }
 
 /**
-	default input handler
-	will catch telnet control sequences and buffer the input
+	Default input handler.
+	Will catch telnet control sequences and buffer the input
 	count is always > 0
 */
 function defReceiveInput(int Count, byte B[255])
@@ -407,6 +414,7 @@ function int defProcEscape(int pos, int Count, byte B[255])
 	return length;
 }
 
+/** default cursor handling handling routine */
 function defCursorKey(ECursorKey key)
 {
 	switch (key)
@@ -1006,7 +1014,7 @@ function outputError(string errormsg)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.10 2004/01/03 10:44:06 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.11 2004/04/06 18:58:11 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0

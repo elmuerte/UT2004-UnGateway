@@ -1,20 +1,27 @@
-/**
-	UnGatewayApplication
-	Applications
-	$Id: UnGatewayApplication.uc,v 1.3 2004/01/02 09:19:24 elmuerte Exp $
-*/
+/*******************************************************************************
+	UnGatewayApplication														<br />
+	Applications																<br />
+																				<br />
+	Authors:	Michiel 'El Muerte' Hendriks &lt;elmuerte@drunksnipers.com&gt;	<br />
+																				<br />
+	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
+	Released under the Lesser Open Unreal Mod License							<br />
+	http://wiki.beyondunreal.com/wiki/LesserOpenUnrealModLicense				<br />
+	<!-- $Id: UnGatewayApplication.uc,v 1.4 2004/04/06 18:58:11 elmuerte Exp $ -->
+*******************************************************************************/
 class UnGatewayApplication extends Object within GatewayDaemon abstract;
 
 /** CVS Id string */
 var const string innerCVSversion;
 
+/** commands this application accepts */
 struct CommandInfo
 {
-	var string Name;
-	var string Help;
+	var localized string Name;
+	var localized string Help;
 };
 /** commands and help */
-var localized array<CommandInfo> Commands;
+var array<CommandInfo> Commands;
 
 /** Called after the object has been created */
 function Create()
@@ -32,8 +39,10 @@ function Create()
 }
 
 /**
-	execute this command, called from the gateway
-	should be overwritten by subclasses
+	Execute this command, called from the gateway.
+	Should be overwritten by subclasses.
+	Because the command name can be localized you should check used the locatized
+	name instead of hardcoding the name
 */
 function bool ExecCmd(UnGatewayClient client, array<string> cmd)
 {
@@ -59,5 +68,5 @@ function string GetHelpFor(string Command)
 
 defaultproperties
 {
-	innerCVSversion="$Id: UnGatewayApplication.uc,v 1.3 2004/01/02 09:19:24 elmuerte Exp $"
+	innerCVSversion="$Id: UnGatewayApplication.uc,v 1.4 2004/04/06 18:58:11 elmuerte Exp $"
 }
