@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GatewayDaemon.uc,v 1.6 2004/04/06 19:12:00 elmuerte Exp $ -->
+	<!-- $Id: GatewayDaemon.uc,v 1.7 2004/04/07 08:39:37 elmuerte Exp $ -->
 *******************************************************************************/
 class GatewayDaemon extends Info config;
 
@@ -43,6 +43,17 @@ struct CommandReference
 };
 /** lookup table to find the app that has the command */
 var array<CommandReference> CmdLookupTable;
+
+/** a command alias */
+struct CommandAlias
+{
+	/** the Alias */
+	var string alias;
+	/** the actual command to execute, replacements can be use %1, %2, %3,..., %@ (for all) for arguments passed to it */
+	var string command;
+};
+/** configured command aliases */
+var(Config) config array<CommandAlias> CmdAliases;
 
 /** system identifier */
 var const string Ident;
@@ -141,6 +152,7 @@ function bool ExecCommand(UnGatewayClient client, array<string> cmd, optional bo
 {
 	local int i;
 	if (cmd.length == 0) return false;
+	LookupAlias(client, cmd);
 	for (i = 0; i < CmdLookupTable.length; i++)
 	{
 		if (CmdLookupTable[i].Command ~= cmd[0]) // case insensitive
@@ -150,6 +162,45 @@ function bool ExecCommand(UnGatewayClient client, array<string> cmd, optional bo
 	}
 	if (bTryConsole) ConsoleCommand(class'wArray'.static.Join(cmd));
 	return false;
+}
+
+/** lookup an alias and translate it, this function asumes cmd has at least the length 1 */
+function LookupAlias(UnGatewayClient client, out array<string> cmd)
+{
+	local int i,j;
+	local string tmp1, tmp2;
+	local array<string> newcmd;
+	for (i = 0; i < CmdAliases.length; i++)
+	{
+		if (CmdAliases[i].alias ~= cmd[0]) break;
+	}
+	if (i == CmdAliases.length) return;
+	tmp1 = CmdAliases[i].command;
+	if (InStr(tmp1, "%@") > -1)
+	{
+		for (j = 1; j < cmd.length; j++)
+		{
+			if (tmp2 != "") tmp2 $= " ";
+			tmp2 $= "\""$cmd[j]$"\"";
+		}
+		tmp1 = repl(tmp1, "%@", tmp2);
+	}
+	if (Client.AdvSplit(tmp1, " ", newcmd, "\"") == 0) return;
+	for (i = 0; (i < cmd.length) && (i < 10); i++)
+	{
+		for (j = 0; j < newcmd.length; j++)
+		{
+			newcmd[j] = repl(newcmd[j], "%"$i, cmd[i]);
+		}
+	}
+	for (i = i; (i < 10); i++)
+	{
+		for (j = 0; j < newcmd.length; j++)
+		{
+			newcmd[j] = repl(newcmd[j], "%"$i, "");
+		}
+	}
+	cmd = newcmd;
 }
 
 /** return false when a client can't close */
@@ -174,5 +225,5 @@ defaultproperties
 
 	AuthClass="UnGateway.GAuthSystem"
 	Ident="UnGateway/100"
-	CVSversion="$Id: GatewayDaemon.uc,v 1.6 2004/04/06 19:12:00 elmuerte Exp $"
+	CVSversion="$Id: GatewayDaemon.uc,v 1.7 2004/04/07 08:39:37 elmuerte Exp $"
 }

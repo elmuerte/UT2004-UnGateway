@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UnGatewayClient.uc,v 1.13 2004/04/06 19:12:00 elmuerte Exp $ -->
+	<!-- $Id: UnGatewayClient.uc,v 1.14 2004/04/07 08:39:37 elmuerte Exp $ -->
 *******************************************************************************/
 class UnGatewayClient extends TCPLink abstract config;
 
@@ -121,7 +121,7 @@ event ReceivedBinary( int Count, byte B[255] )
 }
 
 /** return of a function call */
-function output(string data);
+function output(coerce string data);
 
 /** return of a function call */
 function outputError(string errormsg);
@@ -176,5 +176,5 @@ function int AdvSplit(string input, string delim, out array<string> elm, optiona
 defaultproperties
 {
 	PlayerControllerClass=class'UnGateway.UnGatewayPlayer'
-	CVSversion="$Id: UnGatewayClient.uc,v 1.13 2004/04/06 19:12:00 elmuerte Exp $"
+	CVSversion="$Id: UnGatewayClient.uc,v 1.14 2004/04/07 08:39:37 elmuerte Exp $"
 }

@@ -8,7 +8,7 @@
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
 
-	<!-- $Id: GAppDebug.uc,v 1.12 2004/04/06 20:51:00 elmuerte Exp $ -->
+	<!-- $Id: GAppDebug.uc,v 1.13 2004/04/07 08:39:37 elmuerte Exp $ -->
 *******************************************************************************/
 class GAppDebug extends UnGatewayApplication;
 
@@ -27,12 +27,16 @@ function bool ExecCmd(UnGatewayClient client, array<string> cmd)
 
 function execEcho(UnGatewayClient client, array<string> cmd)
 {
+	local int i;
 	if (cmd.length == 0)
 	{
 		client.outputError("Usage: echo <string>");
 	}
 	else {
-		client.output(cmd[0]);
+		for (i = 0; i < cmd.length; i++)
+		{
+			client.output(cmd[i]);
+		}
 	}
 }
 
@@ -50,7 +54,7 @@ function execTest(UnGatewayClient client, array<string> cmd)
 
 defaultproperties
 {
-	innerCVSversion="$Id: GAppDebug.uc,v 1.12 2004/04/06 20:51:00 elmuerte Exp $"
+	innerCVSversion="$Id: GAppDebug.uc,v 1.13 2004/04/07 08:39:37 elmuerte Exp $"
 	Commands[0]=(Name="echo",Help="Returns it's first argument||Usage: echo \"some text\"")
 	Commands[1]=(Name="test",Help="Various tests")
 }

@@ -10,7 +10,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCTelnet.uc,v 1.13 2004/04/06 20:51:01 elmuerte Exp $	-->
+	<!-- $Id: GCTelnet.uc,v 1.14 2004/04/07 08:39:37 elmuerte Exp $	-->
 *******************************************************************************/
 class GCTelnet extends UnGatewayClient;
 
@@ -472,6 +472,14 @@ function defTabComplete()
 				{
 					completion.length = completion.length + 1;
 					completion[completion.Length-1] = Interface.gateway.CmdLookupTable[i].Command;
+				}
+			}
+			for (i = 0; i < Interface.gateway.CmdAliases.Length; i++)
+			{
+				if (Left(Interface.gateway.CmdAliases[i].Alias, sz) ~= cmd[0])
+				{
+					completion.length = completion.length + 1;
+					completion[completion.Length-1] = Interface.gateway.CmdAliases[i].Alias;
 				}
 			}
 		}
@@ -1001,7 +1009,7 @@ begin:
 	send data to the client, if the pager is enabled it will automatically page
 	the data when there's more data than can fit on the screen
 */
-function output(string data)
+function output(coerce string data)
 {
 	if (!bEnablePager) SendLine(data);
 	else {
@@ -1028,7 +1036,7 @@ function outputError(string errormsg)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.13 2004/04/06 20:51:01 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.14 2004/04/07 08:39:37 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0
