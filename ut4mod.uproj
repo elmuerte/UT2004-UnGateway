@@ -7,7 +7,7 @@ System\UnGateway.u
 System\UnGateway.int
 Help\UnGateway-help.html
 Help\UnGateway LICENSE.TXT
-Help\UnGateway README.TXT
+Help\UnGateway README.html
 Help\UnGateway ChangeLog.txt
 [Group]
 name=UT2004 Applications
@@ -36,7 +36,7 @@ versionURL=http://unreal.epicgames.com/
 developerURL=http://www.epicgames.com/
 [Product]
 product=UnGateway
-version=101
+version=102beta
 developer=Michiel "El Muerte" Hendriks
 productURL=http://ungateway.elmuerte.com
 versionURL=http://ungateway.elmuerte.com

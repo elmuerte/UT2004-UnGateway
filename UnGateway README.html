@@ -1,6 +1,76 @@
 <html>
 <head>
 	<title>UnGateway</title>
+	<style>
+
+BODY {	
+	background-color: #666666;	
+	font-family: sans-serif;
+	font-size: 16px;
+	color: #65BCF3;
+}
+
+H1 {
+	border-bottom: 2px solid black;
+	border-left: 10px solid black;
+	background-color: #606060;
+	margin-top: 0px;
+	margin-bottom: 5px;
+	padding-left: 5px;
+}
+
+H2 {
+	border-bottom: 2px solid #127ABC;
+	border-left: 10px solid #127ABC;
+	background-color: #606060;
+	padding-left: 5px;
+	margin-bottom: 5px;
+}
+
+H3 {
+	border-bottom: 2px solid #59678B;
+	border-left: 10px solid #59678B;
+	background-color: #606060;
+	padding-left: 5px;
+	margin-bottom: 5px;
+}
+
+H4 {
+	margin-top: 10px;
+	margin-bottom: 2px;
+}
+
+A {
+	color: #D0EAFB;
+	text-decoration: none;
+}
+
+A:Visited {
+	color: #A3D6F7;
+}
+
+A:Hover {
+	color: #D0EAFB;	
+}
+
+DT {
+	font-weight: bold;
+	font-size: 15px;
+}
+
+PRE {
+	border: 1px solid #434343;
+	border-left: 5px solid #434343;
+	background-color: #606060;
+	padding-left: 5px;
+}
+
+TH {
+	border-bottom: 1px solid #434343;
+	font-size: 14px;
+}
+
+	</style>
 </head>
 <body>
 
@@ -269,15 +339,16 @@ LogFilename="crondaemon_%P"
 	<dt>LogFilename</dt>
 	<dd>
 	Log filename to use. The following formatting rules are accepted:
-	<pre>
-%P		server port
-%Y		year
-%M		month
-%D		day
-%H		hour
-%I		minute
-%S		second
-%W		day of the week
+	<table>
+	<tr><td>%P</td><td>server port</td></tr>
+	<tr><td>%Y</td><td>year</td></tr>
+	<tr><td>%M</td><td>month</td></tr>
+	<tr><td>%D</td><td>day</td></tr>
+	<tr><td>%H</td><td>hour</td></tr>
+	<tr><td>%I</td><td>minute</td></tr>
+	<tr><td>%S</td><td>second</td></tr>
+	<tr><td>%W</td><td>day of the week</td></tr>
+	</table>
 	</pre>
 	</dd>
 </dl>
@@ -369,13 +440,95 @@ MOTD=...
 	<dd>Show the message of the day</dd>
 
 	<dt>MOTD</dt>
-	<dd>The Messsage Of The Day. <u>TODO!</u> </dd>
+	<dd>The Messsage Of The Day.</dd>
 </dl>
 
 <h3>UnGateway.GIIRCd</h3>
-<u>TODO!</u>
+No additional configuration options for the interface. But the client handler has some options.
+
 <h4>UnGateway.GCIRC</h4>
-<u>TODO!</u>
+<pre>
+[UnGateway.GCIRC]
+bShowMotd=true
+bMustLogin=false
+MaxChannels=2
+bAllowCreateChannel=false
+MOTD=...
+MOTD=...
+...
+</pre>
+
+<dl>
+	<dt>bShowMotd</dt>
+	<dd>Show the message of the day on login</dd>
+
+	<dt>bMustLogin</dt>
+	<dd>if set the user must login with a valid username and password when they register</dd>
+
+	<dt>MaxChannels</dt>
+	<dd>Maximum Channels a user can join</dd>
+
+	<dt>bAllowCreateChannel</dt>
+	<dd>Allow channel creation.	It's strongly adviced not to enable this</dd>
+
+	<dt>MOTD</dt>
+	<dd>The message of the day. You can use the following replacements: %hostname%, %channels%</dd>
+</dl>
+
+<h2>Usage</h2>
+Ofcourse each interface work differently.
+
+<h3>Telnet</h3>
+<p>
+Any telnet client should work with the telnet server, however for MS Window I advise you to use the free client PuTTY. It's much better than the standard MS Telnet client.
+</p>
+<p>
+The rest of the system works pretty much like a GNU BASH shell. Here's an overview of all special keyboard commands:
+<table>
+<tr>
+	<th>key</th><th>description</th>
+</tr>
+<tr><td><code>backspace</code></td><td>delete the previous character</td></tr>
+<tr><td><code>tab</code></td><td>perform tab completion to complete the current command. <br />Note: currently this only works for the commands, not the command parameters</td></tr>
+
+<tr><td><code>Alt+c</code></td><td>toggle partial chat mode</td></tr>
+<tr><td><code>Alt+C</code></td><td>enter full chat mode. to exit the full chat mode press <code>Ctrl+D</code></td></tr>
+
+<tr><td><code>Ctrl+A</code></td><td>move the cursor to the beginning of the line</td></tr>
+<tr><td><code>Ctrl+D</code></td><td>delete the next character, on an empty line: logout</td></tr>
+<tr><td><code>Ctrl+E</code></td><td>move the cursor to the end of the line</td></tr>
+<tr><td><code>Ctrl+K</code></td><td>cut the text from the cursor to the end of the line to the clipboard</td></tr>
+
+<tr><td><code>Ctrl+Y</code></td><td>paste the current clipboard buffer</td></tr>
+
+<tr><td><code>Arrow down</code></td><td>scroll forward in the history</td></tr>
+<tr><td><code>Arrow left</code></td><td>move the cursor to the left</td></tr>
+<tr><td><code>Arrow right</code></td><td>move the cursor to the right</td></tr>
+<tr><td><code>Arrow up</code></td><td>scroll back in the history</td></tr>
+</table>
+</p>
+<p>
+By default the internal pager is enbaled. This means if a command shows more information that you have room on your screen it will start the pager that will allow you to scroll up (<code>PageUp</code>) and scroll down (<code>PageDown</code>) to view all data. To exit the pager either press <code>Ctrl+C</code> or <code>Q</code>.
+</p>
+
+
+<h3>IRC</h3>
+<p>
+The IRC server works pretty much like any other IRC server. However not all functionality is has been implemented.<br />
+By default two channels are created, the game channel and the admin channel (&Admin). The name of the game channel is contructed from the server's IP and port. By default the available IRC channels are listed in the MOTD, otherwise you can use the <code>/list</code> command to list all available channels.
+</p>
+
+<h4>Game channel</h4>
+The game channel is much like a normal IRC channel, by default everything you say will be said on the server, and vice versa. The players in the game join and part this channel automatically.
+
+<h4>Admin channel (&Admin)</h4>
+The admin channel is a special channel (and only local on a server) where you can enter the UnGateway commands. These commands have to be prefixed with a <code>.</code> (a period). Commands not prefixed with a <code>.</code> will just be said on the admin channel, other IRC admins logged in on this channel will also see this.<br />
+The admin channel is only available to logged in admins.
+
+<h4>Logging in</h4>
+There are two ways you can log in. If you specify a password during login the system will automatically try to log you in as an admin. If you don't specify a password you will log in as a normal user. <br />
+To log in as an admin you will have to use the <code>/oper</code> command.<br />
+When you are logged in as an IRC Oper/Admin you will be able to join the Admin channel, and you can see the complete user details when using <code>/whois</code>.
 
 </body>
 </html>
