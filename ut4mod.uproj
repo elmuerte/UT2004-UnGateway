@@ -4,6 +4,9 @@ d:\dev\ut2004\ut2-code
 name=UnGateway Base
 System\UnGateway.u
 System\UnGateway.int
+Help\UnGateway-help.txt
+Help\UnGateway LICENSE.TXT
+Help\UnGateway README.TXT
 [Group]
 name=UT2004 Applications
 System\UGUT2004.u
@@ -14,6 +17,8 @@ Engine.GameEngine,ServerActors,UnGateway.GatewayDaemon,TRUE
 UnGateway.GatewayDaemon,ApplicationClasses,UnGateway.GAppDefault,TRUE
 UnGateway.GatewayDaemon,ApplicationClasses,UnGateway.GAppCron,TRUE
 UnGateway.GatewayDaemon,InterfaceClasses,UnGateway.GITelnetd,TRUE
+UnGateway.GITelnetd,iListenPort,7023,FALSE
+UnGateway.GIIRCd,iListenPort,7666,FALSE
 group=UnGateway Base
 [INI]
 name=UT2004.ini
