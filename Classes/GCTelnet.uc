@@ -10,7 +10,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCTelnet.uc,v 1.19 2004/04/14 13:39:18 elmuerte Exp $	-->
+	<!-- $Id: GCTelnet.uc,v 1.20 2004/04/15 10:46:21 elmuerte Exp $	-->
 *******************************************************************************/
 class GCTelnet extends UnGatewayClient;
 
@@ -114,6 +114,14 @@ var(Config) config bool bDisableAuth;
 	than there are lines available on the screen
 */
 var(Config) config bool bEnablePager;
+/**
+	If set to true the history of the logged in user will be saved when the
+	connection is closed. This feature adds some useless overhead thus is disabled
+	by default.
+*/
+var(Config) config bool bSaveHistory;
+/** the command history class to use */
+var(Config) config string CommandHistoryClass;
 
 /** cursor position: x,y, init-x */
 var protected int cursorpos[3];
@@ -247,6 +255,12 @@ event Accepted()
 		if (fDelayInitial == 0) GotoState('login');
 		else SetTimer(fDelayInitial, false);
 	}
+}
+
+event Closed()
+{
+	super.Closed();
+	if (bSaveHistory) SaveHistory();
 }
 
 /**
@@ -749,6 +763,39 @@ function DisplayCommandHistory(int offset)
 	cursorpos[0] = cursorpos[2]+Len(inbuffer);
 }
 
+/** save the command history of this user */
+function SaveHistory()
+{
+	local class<TelnetCommandHistory> histclass;
+	local TelnetCommandHistory hist;
+	if (sUsername == "") return;
+	histclass = class<TelnetCommandHistory>(DynamicLoadObject(CommandHistoryClass, class'Class'));
+	if (histclass == none)
+	{
+		interface.gateway.Logf("Failed to save command history, invalid history class:"@CommandHistoryClass, Name, interface.gateway.LOG_ERR);
+		return;
+	}
+	hist = new(None,repl(sUsername, " ", Chr(C_ESC))) histclass;
+	hist.History = CommandHistory;
+	hist.SaveConfig();
+}
+
+/** load the command history of this user */
+function LoadHistory()
+{
+	local class<TelnetCommandHistory> histclass;
+	local TelnetCommandHistory hist;
+	if (sUsername == "") return;
+	histclass = class<TelnetCommandHistory>(DynamicLoadObject(CommandHistoryClass, class'Class'));
+	if (histclass == none)
+	{
+		interface.gateway.Logf("Failed to load command history, invalid history class:"@CommandHistoryClass, Name, interface.gateway.LOG_ERR);
+		return;
+	}
+	hist = new(None,repl(sUsername, " ", Chr(C_ESC))) histclass;
+	CommandHistory = hist.History;
+	CurHisIndex = -1;
+}
 
 /** display the issue message */
 function IssueMessage()
@@ -831,6 +878,7 @@ state login
 			{
 				IssueMessage();
 				PlayerController.SetName(sUsername);
+				if (bSaveHistory) LoadHistory();
 				GotoState('logged_in');
 			}
 			else {
@@ -901,7 +949,11 @@ state logged_in
 
 	function TryLogout()
 	{
-		if (!interface.gateway.CanClose(Self)) return;
+		if (!interface.gateway.CanClose(Self))
+		{
+			SendPrompt();
+			return;
+		}
 		GotoState('logout');
 		SendLine();
 		SendLine("Goodbye!");
@@ -1099,13 +1151,15 @@ function outputError(string errormsg, optional string ident)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.19 2004/04/14 13:39:18 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.20 2004/04/15 10:46:21 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0
 	fDelayWrongPassword=5.0
 	bDisableAuth=false
 	bEnablePager=true
+	bSaveHistory=false
+	CommandHistoryClass="UnGateway.TelnetCommandHistory"
 
 	msgUsername="Username: "
 	msgPassword="Password: "
