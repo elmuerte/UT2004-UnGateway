@@ -1,3 +1,10 @@
+Friday, May 21, 2004
+- IRC: real players quit the channel when they quit the server
+
+Wednesday, May 19, 2004
+- IRC: /whois and /whowas implementation
+- IRC: major changes/fixes to the engine
+
 Monday, May 17, 2004
 - Fixed saving of policies
 

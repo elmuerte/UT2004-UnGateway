@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UnGatewayInterface.uc,v 1.7 2004/05/09 18:43:44 elmuerte Exp $ -->
+	<!-- $Id: UnGatewayInterface.uc,v 1.8 2004/05/21 20:56:34 elmuerte Exp $ -->
 *******************************************************************************/
 class UnGatewayInterface extends TcpLink abstract config;
 
@@ -27,6 +27,21 @@ var ELinkMode RequestedLinkMode;
 var int clientCount;
 /** maximum number of client connections that may be open */
 var(Config) config int iMaxClients;
+
+/** access policy, allow or deny*/
+enum EAPolicy
+{
+	AP_Allow,
+	AP_Deny,
+};
+/** per hostmask access policy, both * and ? wildcards in the IP address are supported */
+struct APEntry
+{
+	var string hostmask;
+	var EAPolicy policy;
+};
+/** controlls from where clients may connect, order is important */
+var(AccessPolicy) globalconfig array<APEntry> AccessPolicy;
 
 /**
 	identifier of the interface
@@ -84,6 +99,12 @@ event GainedChild(Actor Other)
 		return;
 	}
 	else {
+		if (!CheckAccessPolicy(UnGatewayClient(Other).RemoteAddr))
+		{
+			Other.Destroyed();
+			Other = none;
+			return;
+		}
 		clientCount++;
 		if(iMaxClients > 0 && clientCount > iMaxClients && LinkState == STATE_Listening)
 		{
@@ -126,6 +147,28 @@ function NotifyClientJoin(UnGatewayClient client);
 /** Will be called when a new client left. */
 function NotifyClientLeave(UnGatewayClient client);
 
+/** check if inaddr conforms to the access policy */
+function bool CheckAccessPolicy(IpAddr inaddr)
+{
+	local string addr;
+	local int i;
+	local bool res;
+
+	res = true;
+	addr = IpAddrToString(inaddr);
+	addr = left(addr, InStr(Addr, ":"));
+	for (i = 0; i < AccessPolicy.length; i++)
+	{
+		if (class'wString'.static.MaskedCompare(addr, AccessPolicy[i].hostmask))
+		{
+			res = AccessPolicy[i].policy == AP_Allow;
+		}
+	}
+	//TODO: broken!?
+	gateway.Logf("CheckAccessPolicy("$addr$") ="@res, Name, gateway.LOG_EVENT);
+	return res;
+}
+
 static function FillPlayInfo(PlayInfo PlayInfo)
 {
 	super.FillPlayInfo(PlayInfo);
@@ -154,7 +197,9 @@ defaultproperties
 	RequestedReceiveMode=RMODE_Event
 	RequestedLinkMode=MODE_Line
 	iMaxClients=10
-	CVSversion="$Id: UnGatewayInterface.uc,v 1.7 2004/05/09 18:43:44 elmuerte Exp $"
+	CVSversion="$Id: UnGatewayInterface.uc,v 1.8 2004/05/21 20:56:34 elmuerte Exp $"
+
+	AccessPolicy[0]=(hostmask="*",policy=AP_Allow);
 
 	PILabel[0]="Listen port"
 	PIDescription[0]="The port this interface will listen on. It should be an unused port."

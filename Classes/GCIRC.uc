@@ -8,7 +8,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCIRC.uc,v 1.19 2004/05/11 10:25:22 elmuerte Exp $ -->
+	<!-- $Id: GCIRC.uc,v 1.20 2004/05/21 20:56:34 elmuerte Exp $ -->
 *******************************************************************************/
 class GCIRC extends UnGatewayClient;
 
@@ -117,7 +117,7 @@ auto state Login
 								SendIRC("USER :Not enough parameters", "461"); // ERR_NEEDMOREPARAMS
 								break;
 							}
-							sUserhost = "~"$input[1]$"@"$input[2]; // no ident lookup
+							sUserhost = input[1]$"@"$input[2]; // no ident lookup
 							sRealname = Mid(line, InStr(line, ":")+1);  // strip :
 							break;
 			default:		SendIRC(input[0]@":Unknown command", "421"); // ERR_UNKNOWNCOMMAND
@@ -290,9 +290,18 @@ state Loggedin
 								else if (input.length == 2) ircExecWHO(input[1]);
 								else if (input.length == 3) ircExecWHO(input[1], (input[2] == "o"));
 								break;
-			case "WHOIS":		// not yet implemented
+			case "WHOIS":		if (input.length < 2) SendIRC("WHOIS :Not enough parameters", "461"); // ERR_NEEDMOREPARAMS
+								else {
+									if (input.length < 3) split(input[1], ",", data1);
+									else split(input[2], ",", data1);
+									ircExecWhois(data1); //!TODO: server support
+								}
 								break;
-			case "WHOWAS":		// not yet implemented
+			case "WHOWAS":		if (input.length < 2) SendIRC("WHOIS :Not enough parameters", "461"); // ERR_NEEDMOREPARAMS
+								else {
+									ircExecWhowas(input[1]); //!TODO: other params
+								}
+								break;
 			case "KILL":		if (input.length < 3) SendIRC("KILL :Not enough parameters", "461"); // ERR_NEEDMOREPARAMS
 								else {
 									ircExecKILL(input[1], "...");
@@ -638,7 +647,7 @@ function ircExecPRIVMSG(string receipt, string text)
 /** send a notice */
 function ircExecNOTICE(string receipt, string text)
 {
-	//`...
+	//!TODO: ...
 }
 
 /** request information about a user/usermask */
@@ -660,7 +669,7 @@ function ircExecWHO(optional string mask, optional bool bOnlyOps)
 		{
 			// "<channel> <user> <host> <server> <nick> <H|G>[*][@|+] :<hopcount> <real name>"
 			uid = id.Users[i].uid;
-			tmp = mask@repl(GIIRCd(Interface).IRCUsers[uid].Userhost,"@", " ");
+			tmp = mask@repl(GIIRCd(Interface).GetIRCUserHost(uid,,true),"@", " ");
 			tmp @= interface.gateway.hostname;
 			tmp @= GIIRCd(Interface).IRCUsers[uid].Nick;
 			Tmp @= "H"; // only H, no away supported
@@ -675,6 +684,61 @@ function ircExecWHO(optional string mask, optional bool bOnlyOps)
 		// nick msg
 	}
 	SendIRC(mask@":End of /WHO list", "315"); // RPL_ENDOFWHO
+}
+
+/** return whois information */
+function ircExecWhois(array<string> nickmask, optional string server)
+{
+	local int i, j;
+	local string tmp, nicks;
+	if (nickmask.length == 0)
+	{
+		SendIRC(":No nickname given", "431"); // ERR_NONICKNAMEGIVEN
+		return;
+	}
+	for (i = 0; i < nickmask.length; i++)
+	{
+		for (j = 0; j < GIIRCd(interface).IRCUsers.length; j++)
+		{
+			if (GIIRCd(interface).IRCUsers[j].bDead) continue;
+			if (class'wString'.static.MaskedCompare(GIIRCd(interface).IRCUsers[j].Nick, nickmask[i]))
+			{
+				tmp = GIIRCd(interface).GetIRCUserHost(j, IsAdmin());
+				tmp = repl(repl(tmp, "@", " "), "!" , " ");
+				tmp @= "* :"$GIIRCd(interface).IRCUsers[j].RealName;
+				SendIRC(tmp, "311"); //RPL_WHOISUSER
+				SendIRC(GIIRCd(interface).IRCUsers[j].Nick@interface.gateway.hostname@":"$interface.gateway.hostname@"UnrealEngine2/"$Level.EngineVersion@Interface.gateway.Ident@Interface.Ident, "312"); //RPL_WHOISSERVER
+				if (level.Game.AccessControl.IsAdmin(GIIRCd(interface).IRCUsers[j].PC)) SendIRC(GIIRCd(interface).IRCUsers[j].Nick@":is an IRC operator", "313"); //RPL_WHOISOPERATOR
+
+				if (nicks != "") nicks $= ",";
+				nicks $= GIIRCd(interface).IRCUsers[j].Nick;
+			}
+		}
+	}
+	if (nicks == "") SendIRC(class'wArray'.static.Join(nickmask, ",", true)@":No such nick/channel", "401"); //ERR_NOSUCHNICK
+	else SendIRC(nicks@":End of /WHOIS list", "318"); //RPL_ENDOFWHOIS
+}
+
+/** return whois information */
+function ircExecWhowas(string nick, optional string server)
+{
+	local int j;
+	local string tmp;
+	for (j = 0; j < GIIRCd(interface).IRCUsers.length; j++)
+	{
+		if (!GIIRCd(interface).IRCUsers[j].bDead) continue;
+		if (GIIRCd(interface).IRCUsers[j].Nick ~= nick)
+		{
+			tmp = GIIRCd(interface).GetIRCUserHost(j, IsAdmin());
+			tmp = repl(repl(tmp, "@", " "), "!" , " ");
+			tmp @= "* :"$GIIRCd(interface).IRCUsers[j].RealName;
+			SendIRC(tmp, "314"); //RPL_WHOWASUSER
+			SendIRC(GIIRCd(interface).IRCUsers[j].Nick@interface.gateway.hostname@":"$interface.gateway.hostname@"UnrealEngine2/"$Level.EngineVersion@Interface.gateway.Ident@Interface.Ident, "312"); //RPL_WHOISSERVER
+			SendIRC(GIIRCd(interface).IRCUsers[j].Nick@":End of WHOWAS", "369"); //RPL_ENDOFWHOWAS
+			return;
+		}
+	}
+	SendIRC(nick@":There was no such nickname", "406"); // ERR_NONICKNAMEGIVEN
 }
 
 /** kill a client */
@@ -727,14 +791,14 @@ function outputChat(coerce string pname, coerce string message, optional name Ty
 		}
 	}
 	if (id == ClientID) return;
-	SendText(":"$GIIRCd(Interface).IRCUsers[id].Nick$"!"$GIIRCd(Interface).IRCUsers[id].Userhost@"PRIVMSG"@GIIRCd(Interface).GameChannelName@message);
+	SendText(":"$GIIRCd(Interface).GetIRCUserHost(id)@"PRIVMSG"@GIIRCd(Interface).GameChannelName@message);
 }
 
 
 defaultproperties
 {
 	ClientID=-1
-	CVSversion="$Id: GCIRC.uc,v 1.19 2004/05/11 10:25:22 elmuerte Exp $"
+	CVSversion="$Id: GCIRC.uc,v 1.20 2004/05/21 20:56:34 elmuerte Exp $"
 	bShowMotd=true
 	MaxChannels=2
 	bAllowCreateChannel=false

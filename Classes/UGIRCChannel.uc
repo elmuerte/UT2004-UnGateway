@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UGIRCChannel.uc,v 1.3 2004/05/11 10:25:22 elmuerte Exp $ -->
+	<!-- $Id: UGIRCChannel.uc,v 1.4 2004/05/21 20:56:34 elmuerte Exp $ -->
 *******************************************************************************/
 class UGIRCChannel extends Object;
 
@@ -138,7 +138,7 @@ function PartUser(int userid, optional bool bDontAnnounce)
 		{
 			users.remove(j, 1);
 			if (bDontAnnounce) return;
-			BroadcastMessage(":"$IRCd.IRCUsers[userid].Nick$"!"$IRCd.IRCUsers[userid].Userhost@"PART"@ChannelName);
+			BroadcastMessage(":"$IRCd.GetIRCUserHost(userid)@"PART"@ChannelName);
 			return;
 		}
 	}
@@ -154,7 +154,7 @@ function JoinUser(int userid, optional bool bDontAnnounce)
 	}
 	users.length = j+1;
 	users[j].uid = userid;
-	BroadcastMessage(":"$IRCd.IRCUsers[userid].Nick$"!"$IRCd.IRCUsers[userid].Userhost@"JOIN"@ChannelName);
+	BroadcastMessage(":"$IRCd.GetIRCUserHost(userid)@"JOIN"@ChannelName);
 }
 
 /** check if a channel name is valid */

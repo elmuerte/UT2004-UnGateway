@@ -7,12 +7,9 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GIIRCd.uc,v 1.17 2004/05/11 10:25:22 elmuerte Exp $ -->
+	<!-- $Id: GIIRCd.uc,v 1.18 2004/05/21 20:56:34 elmuerte Exp $ -->
 *******************************************************************************/
-/*
-	TODO:
-	- manage new imgateway players via linked list
-*/
+
 class GIIRCd extends UnGatewayInterface;
 
 /** we need to keep a record of clients here */
@@ -24,7 +21,7 @@ struct IRCUserRecord
 	/** the nickname used */
 	var string Nick;
 	/** username@hostname */
-	var string Userhost;
+	var string ident,host;
 	/** real name */
 	var string RealName;
 	/** irc user mode */
@@ -35,6 +32,8 @@ struct IRCUserRecord
 	var GCIRC client;
 	/** for disconnected clients (also whowas) */
 	var bool bDead;
+	/** @ignore */
+	var int x;
 };
 /** list with irc users, connected or dead */
 var array<IRCUserRecord> IRCUsers;
@@ -103,16 +102,17 @@ function string FixName(string username)
 /** get a unique name */
 function string GetUniqueName(string base)
 {
-	local int i;
+	local int i,j;
 	local string newname;
 
 	newname = base;
+	j = 1;
 loop:
 	for (i = 0; i < IRCUsers.Length; i++)
 	{
 		if ((IRCUsers[i].Nick ~= newname) && (!IRCUsers[i].bDead))
 		{
-			newname = base$(i++);
+			newname = base$(j++);
 			goto loop;
 		}
 	}
@@ -161,7 +161,8 @@ function int GetIRCUser(GCIRC client, optional bool bDontAdd)
 	gateway.Logf("[GetIRCUser] Creating IRC user:"@client.sUsername$"!"$client.sUserhost, Name, gateway.LOG_EVENT);
 	IRCUsers.length = IRCUsers.length+1;
 	IRCUsers[IRCUsers.length-1].Nick = client.sUsername;
-	IRCUsers[IRCUsers.length-1].Userhost = client.sUserhost;
+	IRCUsers[IRCUsers.length-1].host = Left(client.sUserhost, InStr(client.sUserhost, "@"));
+	IRCUsers[IRCUsers.length-1].ident = Mid(client.sUserhost, InStr(client.sUserhost, "@")+1);
 	IRCUsers[IRCUsers.length-1].PC = client.PlayerController;
 	IRCUsers[IRCUsers.length-1].Client = client;
 	IRCUsers[IRCUsers.length-1].Mode = "i"; // always invisible
@@ -182,11 +183,16 @@ function int GetSystemIRCUser(PlayerController PC, optional bool bDontAdd, optio
 	IRCUsers.length = IRCUsers.length+1;
 	IRCUsers[IRCUsers.length-1].Nick = GetUniqueName(fixname(PC.PlayerReplicationInfo.PlayerName));
 	IRCUsers[IRCUsers.length-1].RealName = PC.PlayerReplicationInfo.PlayerName;
-	IRCUsers[IRCUsers.length-1].Userhost = PC.GetPlayerIDHash()$"@"$PC.GetPlayerNetworkAddress();
+	IRCUsers[IRCUsers.length-1].host = PC.GetPlayerNetworkAddress();
+	// strip port
+	IRCUsers[IRCUsers.length-1].host = Left(IRCUsers[IRCUsers.length-1].host, InStr(IRCUsers[IRCUsers.length-1].host, ":"));
+	if (IRCUsers[IRCUsers.length-1].host == "") IRCUsers[IRCUsers.length-1].host = gateway.hostname;
+	IRCUsers[IRCUsers.length-1].ident = PC.GetPlayerIDHash();
 	IRCUsers[IRCUsers.length-1].PC = PC;
 	if (UnGatewayPlayer(PC) != none)
 	{
-		IRCUsers[IRCUsers.length-1].Userhost = UnGatewayPlayer(PC).client.Name$"@"$UnGatewayPlayer(PC).client.ClientAddress;
+		IRCUsers[IRCUsers.length-1].host = UnGatewayPlayer(PC).client.ClientAddress;
+		IRCUsers[IRCUsers.length-1].ident = string(UnGatewayPlayer(PC).client.Name);
 	}
 	IRCUsers[IRCUsers.length-1].Client = none;
 	IRCUsers[IRCUsers.length-1].Mode = "i"; // always invisible
@@ -258,10 +264,17 @@ function int GetNick(optional string Nickname, optional PlayerReplicationInfo PR
 }
 
 /** return the user!ident@host mask */
-function string GetIRCUserHost(int idx)
+function string GetIRCUserHost(int idx, optional bool bAdmin, optional bool bNoNick)
 {
+	local string tmp;
 	if (idx < 0 || idx >= IRCUsers.Length) return "";
-	return IRCUsers[idx].Nick$"!"$IRCUsers[idx].Userhost;
+	if (!bNoNick) tmp = IRCUsers[idx].Nick$"!";
+	if (bAdmin) tmp $= IRCUsers[idx].ident$"@"$IRCUsers[idx].host;
+	else {
+		tmp $= "~"$right(IRCUsers[idx].ident, 16)$"@";
+		tmp $= left(IRCUsers[idx].host, 0.75*len(IRCUsers[idx].host))$".vhost";
+	}
+	return tmp;
 }
 
 /** grant/revoke usermode settings */
@@ -319,10 +332,11 @@ function BroadcastMessageList(coerce string message, array<UGIRCChannel> id, opt
 event Tick(float deltatime)
 {
 	local Controller C;
-	local int i;
+	local int i, x;
 	local string tmp;
 
 	super.Tick(deltatime);
+	x = rand(maxint);
 	for (C = Level.ControllerList; C != none; C = C.nextController)
 	{
 		if (PlayerController(C) != none && UnGatewayPlayer(C) == none)
@@ -335,9 +349,22 @@ event Tick(float deltatime)
 					tmp = GetUniqueName(FixName(C.PlayerReplicationInfo.PlayerName));
 					GameChannel.BroadcastMessage(":"$GetIRCUserHost(i)@"NICK"@tmp);
 					IRCUsers[i].Nick = tmp;
+					IRCUsers[i].RealName = C.PlayerReplicationInfo.PlayerName;
 				}
+				IRCUsers[i].x = x;
 			}
 		}
+	}
+	for (i = 0; i < IRCUsers.length; i++)
+	{
+		if (IRCUsers[i].bDead) continue;
+		if (UnGatewayPlayer(IRCUsers[i].PC) != none) continue;
+		if (IRCUsers[i].x == x) continue;
+
+		GameChannel.BroadcastMessage(":"$GetIRCUserHost(i)@"QUIT :Logout");
+		IRCUsers[i].bDead = true;
+		IRCUsers[i].PC = none;
+		IRCUsers[i].client = none;
 	}
 }
 
@@ -368,7 +395,7 @@ function NotifyClientLeave(UnGatewayClient client)
 defaultproperties
 {
 	Ident="IRC/101"
-	CVSversion="$Id: GIIRCd.uc,v 1.17 2004/05/11 10:25:22 elmuerte Exp $"
+	CVSversion="$Id: GIIRCd.uc,v 1.18 2004/05/21 20:56:34 elmuerte Exp $"
 	AcceptClass=class'UnGateway.GCIRC'
 	IRCChannelClass=class'UnGateway.UGIRCChannel'
 }
