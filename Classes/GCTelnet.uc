@@ -10,7 +10,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCTelnet.uc,v 1.15 2004/04/07 21:16:48 elmuerte Exp $	-->
+	<!-- $Id: GCTelnet.uc,v 1.16 2004/04/08 19:43:30 elmuerte Exp $	-->
 *******************************************************************************/
 class GCTelnet extends UnGatewayClient;
 
@@ -458,17 +458,21 @@ function defTabComplete()
 	local array<string> cmd, completion;
 	local int i, sz;
 	local string tmp;
+	local bool midcompl;
 
-	if (inbuffer == "") Bell();
-	else if (AdvSplit(inbuffer, " ", cmd, "\"") == 0) Bell();
+	tmp = Left(inbuffer, cursorpos[0]-cursorpos[2]);
+	if (tmp == "") Bell();
+	else if (AdvSplit(tmp, " ", cmd, "\"") == 0) Bell();
 	else {
 		// find first matching command
+		//log(inbuffer@cursorpos[0]@cursorpos[2]@cmd.length@cmd[0]@InStr(inbuffer, " "));
+		midcompl = cursorpos[0]-cursorpos[2] < Len(inbuffer);
 		if (cmd.length == 1)
 		{
-			sz = Len(cmd[0]);
+			sz = Len(tmp);
 			for (i = 0; i < Interface.gateway.CmdLookupTable.Length; i++)
 			{
-				if (Left(Interface.gateway.CmdLookupTable[i].Command, sz) ~= cmd[0])
+				if (Left(Interface.gateway.CmdLookupTable[i].Command, sz) ~= tmp)
 				{
 					completion.length = completion.length + 1;
 					completion[completion.Length-1] = Interface.gateway.CmdLookupTable[i].Command;
@@ -476,7 +480,7 @@ function defTabComplete()
 			}
 			for (i = 0; i < Interface.gateway.CmdAliases.Length; i++)
 			{
-				if (Left(Interface.gateway.CmdAliases[i].Alias, sz) ~= cmd[0])
+				if (Left(Interface.gateway.CmdAliases[i].Alias, sz) ~= tmp)
 				{
 					completion.length = completion.length + 1;
 					completion[completion.Length-1] = Interface.gateway.CmdAliases[i].Alias;
@@ -493,8 +497,10 @@ function defTabComplete()
 		}
 		else if (completion.Length == 1)
 		{
-			tmp = Mid(completion[0], sz)$" ";
-			inbuffer $= tmp;
+			tmp = Mid(completion[0], sz);
+			if (!midcompl) tmp $= " ";
+			else tmp @= Mid(inbuffer, sz);
+			inbuffer = Left(inbuffer, sz)$tmp;
 			SendText(tmp);
 			cursorpos[0] += Len(tmp);
 		}
@@ -1037,7 +1043,7 @@ function outputError(string errormsg)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.15 2004/04/07 21:16:48 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.16 2004/04/08 19:43:30 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0

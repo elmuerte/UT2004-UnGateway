@@ -7,9 +7,12 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GAppDefault.uc,v 1.1 2004/04/07 08:39:37 elmuerte Exp $ -->
+	<!-- $Id: GAppDefault.uc,v 1.2 2004/04/08 19:43:30 elmuerte Exp $ -->
 *******************************************************************************/
 class GAppDefault extends UnGatewayApplication;
+
+/** the substring to convert to a newline */
+var localized string HelpNewline;
 
 function bool ExecCmd(UnGatewayClient client, array<string> cmd)
 {
@@ -49,7 +52,7 @@ function execHelp(UnGatewayClient client, array<string> cmd)
 		{
 			if (CmdLookupTable[i].bHasHelp)
 			{
-				split(CmdLookupTable[i].App.GetHelpFor(CmdLookupTable[i].Command), "|", HelpInfo);
+				split(CmdLookupTable[i].App.GetHelpFor(CmdLookupTable[i].Command), HelpNewline, HelpInfo);
 				for (j = 0; j < HelpInfo.length; j++)
 				{
 					client.output(HelpInfo[j]);
@@ -129,8 +132,9 @@ function execList(UnGatewayClient client, array<string> cmd)
 
 defaultproperties
 {
-	innerCVSversion="$Id: GAppDefault.uc,v 1.1 2004/04/07 08:39:37 elmuerte Exp $"
-	Commands[0]=(Name="help",Help="Show help about commands|This should be a built-in command||Usage: help <command>")
-	Commands[1]=(Name="list",Help="Show various lists.|cmd	show registered commands|app	show loaded applications|if	show loaded interfaces|client	show connected clients")
+	innerCVSversion="$Id: GAppDefault.uc,v 1.2 2004/04/08 19:43:30 elmuerte Exp $"
+	HelpNewline="ÿ"
+	Commands[0]=(Name="help",Help="Show help about commandsÿUsage: help <command>")
+	Commands[1]=(Name="list",Help="Show various lists.\ncmd	show registered commandsÿapp	show loaded applicationsÿif	show loaded interfacesÿclient	show connected clients")
 	Commands[2]=(Name="quit",Help="Logout")
 }
