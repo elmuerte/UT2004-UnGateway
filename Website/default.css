@@ -1,0 +1,145 @@
+BODY {	
+	background-color: #666666;	
+	font-family: sans-serif;
+	font-size: 16px;
+	color: #65BCF3;
+}
+
+DIV.head {
+	background-color: black;
+	background-image: url(/images/logobg.png);
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	width: 100%;
+	height: 110px;
+}
+
+DIV.menu {
+	background-color: #1797E9;
+	background-image: url(/images/menubg.png);
+	position: absolute;
+	top: 110px;
+	left: 0px;
+	width: 100%;
+	height: 20px;
+	font-weight: bold;
+	text-align: center;
+	font-size: 14px;
+	padding-top: 2px;
+	color: black;
+}
+
+DIV.menu A {
+	padding: 2px;
+	border: 1px hidden #1797E9;
+	color: black;
+	text-decoration: none;
+}
+
+DIV.menu A:Visited {
+	color: black;
+}
+
+DIV.menu A:Hover {
+	border: 1px solid #127ABC;
+	background-color: #158CD7;	
+	color: black;
+}
+
+DIV.content {
+	position: absolute;
+	top: 140px;
+	left: 0px;
+	width: 98%;
+	padding-left: 1%;
+}
+
+DIV.copyright {
+	border-top: 1px solid #1797E9;
+	font-size: 12px;
+	width: 50%;
+	left: 25%;
+	position: relative;
+	text-align: center;
+	margin-top: 20px;
+}
+
+H1 {
+	border-bottom: 2px solid black;
+	border-left: 10px solid black;
+	background-color: #606060;
+	margin-top: 0px;
+	margin-bottom: 5px;
+	padding-left: 5px;
+}
+
+H2 {
+	border-bottom: 2px solid #127ABC;
+	border-left: 10px solid #127ABC;
+	background-color: #606060;
+	padding-left: 5px;
+	margin-bottom: 5px;
+}
+
+H3 {
+	border-bottom: 2px solid #59678B;
+	border-left: 10px solid #59678B;
+	background-color: #606060;
+	padding-left: 5px;
+	margin-bottom: 5px;
+}
+
+H4 {
+	margin-top: 10px;
+	margin-bottom: 2px;
+}
+
+A {
+	color: #D0EAFB;
+	text-decoration: none;
+}
+
+A:Visited {
+	color: #A3D6F7;
+}
+
+A:Hover {
+	color: #D0EAFB;	
+}
+
+DT {
+	font-weight: bold;
+	font-size: 15px;
+}
+
+PRE {
+	border: 1px solid #434343;
+	border-left: 5px solid #434343;
+	background-color: #606060;
+	padding-left: 5px;
+}
+
+TH {
+	border-bottom: 1px solid #434343;
+	font-size: 14px;
+}
+
+H1.ugh_cmd {
+	font-size: 18px;
+	margin-bottom: 0px;
+	margin-top: 5px;
+}
+
+DIV.ugh_app {
+	border: 1px solid #434343;
+	background-color: #606060;
+	font-family: monospace;
+	padding: 2px;
+	margin-bottom: 5px;
+	font-size: 14px;
+}
+
+DIV.ugh_help {
+	
+}

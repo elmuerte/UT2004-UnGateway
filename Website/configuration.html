@@ -1,0 +1,354 @@
+<h1>Configuration</h1>
+<h2>Applications</h2>
+<p>
+Applications contain the commands you can enter into the system. There are a couple of application included with the system.<br />
+To install a application to have to add it to the application list of the GatewatDaemon in the system configuration:
+<pre>
+[UnGateway.GatewayDaemon]
+ApplicationClasses=&lt;application class 1&gt;
+ApplicationClasses=&lt;application class 2&gt;
+ApplicationClasses=...
+</pre>
+You can add as many application classes as you want.
+</p>
+<p>
+The following application classes are included with the system:
+<table>
+<tr>
+	<th>class name</th><th>description</th>
+</tr>
+<tr>
+	<td><code>UnGateway.GAppDebug</code></td><td>Contains debug commands, there's no need to install this application</td>
+</tr>
+<tr>
+	<td><code>UnGateway.GAppDefault</code></td><td>Contain default commands like "help" and "quit"</td>
+</tr>
+<tr>
+	<td><code>UnGateway.GAppCron</code></td><td>Provides a cron daemon to program commands to be executed at a set time.</td>
+</tr>
+<tr>
+	<td><code>UGUT2004.GAppSystem</code></td><td>Provides general system commands for UT2004, like shutdown and servertravel</td>
+</tr>
+<tr>
+	<td><code>UGUT2004.GAppSettings</code></td><td>Contains commands to change settings and maplists</td>
+</tr>
+</table>
+For an overview of all available commands and some additional information checkt the UnGateway-help.html file
+</p>
+
+<h2>Interfaces</h2>
+<p>
+Out of the box UnGateway doesn't do much. You need to configure interfaces and 
+applications that are available. To add an interface add the following to your 
+system configuration:
+<pre>
+[UnGateway.GatewayDaemon]
+InterfaceClasses=&lt;interface class 1&gt;
+InterfaceClasses=&lt;interface class 2&gt;
+InterfaceClasses=...
+</pre>
+</p>
+<p>
+The following interface classes are available:
+<table>
+<tr>
+	<th>class name</th><th>description</th>
+</tr>
+<tr>
+	<td><code>UnGateway.GITelnetd</code></td><td>Telnet server, emulates a VT102 terminal server</td>
+</tr>
+<tr>
+	<td><code>UnGateway.GIIRCd</code></td><td>IRC server</td>
+</tr>
+</table>
+</p>
+
+<h2>Other options</h2>
+Besides the interfaces and the applications you can also change the following setting. However, most of these don't require any changes.
+<pre>
+[UnGateway.GatewayDaemon]
+Verbose=0
+AuthClass=UnGateway.GAuthSystem
+CmdAliases=(alias="reboot",command="shutdown now \"restarting the server, please return in a couple of second\"")
+CmdAliases=(alias="p",command="players %@")
+...
+</pre>
+
+<dl>
+	<dt>Verbose<dt>
+	<dd>This sets the log verbosity. It's a binary list of flags: Error = 1; Warning = 2; Info = 4; Event = 8; Debug = 128. You probably only want to set the Error flag and maybe the Warning flag.</dd>
+
+	<dt>AuthClass</dt>
+	<dd>This is the authentication system used to authenticate the logins. The system comes with one system <code>UnGateway.GAuthSystem</code>, this will just used the UT2004's AccessControll class to validate the logins.</dd>
+
+	<dt>CmdAliases</dt>
+	<dd>This will allow you to create aliases for certain commands. You can have as many aliases as you want, you can only use real commands in the command value of the alias. Aliases have a higher priority than the actual commands. these aliases are system wide, so every user can use these aliases. By default no aliases have been configured.</dd>
+</dl>
+
+<h2>General interface configuration</h2>
+Each interface has the following configuration options. Additional configuration options may be available per interface.
+
+<pre>
+iListenPort=0
+bUseNextAvailable=false
+iMaxClients=10
+AccessPolicy=(hostmask="*",policy=AP_Allow)
+...
+</pre>
+
+<dl>
+	<dt>iListenPort</dt>
+	<dd>The TCP port to listen on for incoming connections. By default the built-in interfaces have not configured any listen port. So you will have to set them up correctly before you start the server.</dd>
+
+	<dt>bUseNextAvailable</dt>
+	<dd>If the listen port is already in use, use the next available port to bind to. It's adviced to set this value to false.</dd>
+
+	<dt>iMaxClients</dt>
+	<dd>The maximum number of clients allowed. If the max has been reached, new clients will be denied.</dd>
+
+	<dt>AccessPolicy</dt>
+	<dd>This controlls from which IP mask client may or may not connect from. The default policy is to accept clients from any IP mask. The order of the AccessPolicy is important, the last match has the final ruling.<br />
+	The hostmask can contain the following wildcards: * = zero or more matches; ? = one single character. <br />
+	The policy can either be <code>AP_Allow</code> or <code>AP_Deny</code></dd>
+</dl>
+
+<h1>Application configuration</h1>
+Some applications have configurable options. Unless stated otherwise, all configurations belong in the system configuration.
+
+<h2>UnGateway.GAppCron</h2>
+<p>
+<pre>
+[UnGateway.GAppCron]
+CronClass=UnGateway.Cron
+</pre>
+<dl>
+	<dt>CronClass</dt>
+	<dd>the Cron daemon class, no need to change this</dd>
+</dl>
+</p>
+
+<h3>UnGateway.Cron</h3>
+<p>
+<pre>
+[UnGateway.Cron]
+DummyClientClass=UnGateway.CronClient
+Crontab=(Command="somecommand",Type=EC_Delay,Time="5",Desc="added by Admin",bDisabled=False)
+...
+</pre>
+<dl>
+	<dt>DummyClientClass</dt>
+	<dd>The dummy client used to capture the output of commands. No need to change this</dd>
+
+	<dt>Crontab</dt>
+	<dd>The cron configuration. You can add as many cron entries as you want.<br />
+	<table>
+	<tr>
+		<th>field</th><th>description</th>
+	</tr>
+	<tr>
+		<td>Command</td><td>the command to secute</td>
+	</tr>
+	<tr>
+		<td>Type</td><td><code>EC_Delay</code> or <code>EC_Time</code></td>
+	</tr>
+	<tr>
+		<td>Time</td><td>time configuration, format depends on the value of Type.</td>
+	</tr>
+	<tr>
+		<td>Desc</td><td>description</td>
+	</tr>
+	<tr>
+		<td>bDisabled</td><td>when true the command will never be executed</td>
+	</tr>
+	</table>
+	<dl>
+		<dt><code>EC_Delay</code></dt>
+		<dd>The command will be executed after set number of minutes after the level has been loaded.</dd>
+
+		<dt><code>EC_Time</code></dt>
+		<dd>The command will be executed when the set time has been	reached. <br />
+		Time field format, 5 fields: <code>minute hour day month day_of_week</code>
+		<table>
+		<tr>
+			<td>minute:</td><td>0-59</td>
+		</tr>
+		<tr>
+			<td>hour:</td><td>0-23</td>
+		</tr>
+		<tr>
+			<td>day:</td><td>0-31</td>
+		</tr>
+		<tr>
+			<td>month:</td><td>0-11</td>
+		</tr>
+		<tr>
+			<td>day_of_week:</td><td>0-6</td>
+		</tr>
+		</table>
+ 	A * can be used as wild card. Optionally each field can have a divider for
+	re-occurance: val/div. For example a field has the value: "0/5". This means
+	that it will match: time % div == val -> time % 5 == 0. If time is minutes
+	then it will match every 5 minutes, 1/5 will also match every 5 minutes,
+	except that it's the 2nd minute of every 5 minutes, 5/5 will never match. A
+	wildcard in a divider will be changed to 0: * /5 -> 0/5, 0/ * -> 0/0 (never
+	matches)
+		</dd>
+	</dl>
+	</dd>
+</dl>
+</p>
+
+<h3>UnGateway.CronClient</h3>
+<p>
+<pre>
+[UnGateway.CronClient]
+bSilent=false
+bExternalLog=false
+LogFilename="crondaemon_%P"
+</pre>
+
+<dl>
+	<dt>bSilent</dt>
+	<dd>only log errors</dd>
+
+	<dt>bExternalLog</dt>
+	<dd>use and external log file</dd>
+
+	<dt>LogFilename</dt>
+	<dd>
+	Log filename to use. The following formatting rules are accepted:
+	<table>
+	<tr><td>%P</td><td>server port</td></tr>
+	<tr><td>%Y</td><td>year</td></tr>
+	<tr><td>%M</td><td>month</td></tr>
+	<tr><td>%D</td><td>day</td></tr>
+	<tr><td>%H</td><td>hour</td></tr>
+	<tr><td>%I</td><td>minute</td></tr>
+	<tr><td>%S</td><td>second</td></tr>
+	<tr><td>%W</td><td>day of the week</td></tr>
+	</table>
+	</pre>
+	</dd>
+</dl>
+</p>
+
+<h1>Interface configuration</h1>
+Most interfaces (or it's client handlers) have additional configuration options.
+
+<h2>UnGateway.GITelnetd</h2>
+No additional configuration options for the interface. But the client handler has some options.
+
+<h3>UnGateway.GCTelnet</h3>
+<pre>
+[UnGateway.GCTelnet]
+CommandPrompt="%username%@%computername%:~$ "
+iMaxLogin=3
+fDelayInitial=0.0
+fDelayWrongPassword=5.0
+bDisableAuth=false
+bEnablePager=true
+bSaveHistory=false
+CommandHistoryClass=UnGateway.TelnetCommandHistory
+ChatMode=CM_Disabled
+bShowMotd=true
+MOTD=...
+MOTD=...
+...
+</pre>
+
+<dl>
+	<dt>CommandPrompt</dt>
+	<dd>The command prompt format. The following replacements can be used: <br />
+	%username%, %computername%, %hostname%, %hostaddress%, %clientaddress%</dd>
+
+	<dt>iMaxLogin</dt>
+	<dd>The maximum login tries before the connection is closed.</dd>
+
+	<dt>fDelayInitial</dt>
+	<dd>the number of seconds to wait before the user can try to log in.</dd>
+
+	<dt>fDelayWrongPassword</dt>
+	<dd>Number of seconds to wait before a user can try to log in again. this 
+	prevents brute forcing a password.</dd>
+
+	<dt>bDisableAuth</dt>
+	<dd>Disable authentication completely. You should not do this, it will allow 
+	everybody to login without a username and password.</dd>
+
+	<dt>bEnablePager</dt>
+	<dd>The pager is the automatic scroll feature that allows users to scroll up 
+	or down when a command output is more than could fit on the screen.</dd>
+
+	<dt>bSaveHistory</dt>
+	<dd>Save each user's command history to the UnGateway.ini file. This will 
+	add some useless overhead during login and logout.</dd>
+
+	<dt>CommandHistoryClass</dt>
+	<dd>The class to spawn for saving\loading the command history</dd>
+
+	<dt>ChatMode</dt>
+	<dd>The intial chat mode. With full chat mode everything the user enters 
+	will be a chat command. With partial chat only part of the screen is 
+	reserved for messages and only when the user uses the say command it 
+	will be considerd as a chat message.<br >
+	<table>
+	<tr>
+		<td><code>CM_Disabled</code></td><td>Disabled</td>
+	</tr>
+	<tr>
+		<td><code>CM_Full</code></td><td>Full chat mode</td>
+	</tr>
+	<tr>
+		<td><code>CM_Partial</code></td><td>Partial chat mode</td>
+	</tr>
+	</table>
+	When logged in you can use the following commands to change the chat
+	mode:
+	<table>
+	<tr>
+		<td><code>Alt+c</code></td><td>toggle partial chat mode</td>
+	</tr>
+	<tr>
+		<td><code>Alt+C</code></td><td>full chat mode</td>
+	</tr>
+	</table>
+	Note: instead of Alt the Esc can be used</dd>
+
+	<dt>bShowMotd</dt>
+	<dd>Show the message of the day</dd>
+
+	<dt>MOTD</dt>
+	<dd>The Messsage Of The Day.</dd>
+</dl>
+
+<h2>UnGateway.GIIRCd</h2>
+No additional configuration options for the interface. But the client handler has some options.
+
+<h3>UnGateway.GCIRC</h3>
+<pre>
+[UnGateway.GCIRC]
+bShowMotd=true
+bMustLogin=false
+MaxChannels=2
+bAllowCreateChannel=false
+MOTD=...
+MOTD=...
+...
+</pre>
+
+<dl>
+	<dt>bShowMotd</dt>
+	<dd>Show the message of the day on login</dd>
+
+	<dt>bMustLogin</dt>
+	<dd>if set the user must login with a valid username and password when they register</dd>
+
+	<dt>MaxChannels</dt>
+	<dd>Maximum Channels a user can join</dd>
+
+	<dt>bAllowCreateChannel</dt>
+	<dd>Allow channel creation.	It's strongly adviced not to enable this</dd>
+
+	<dt>MOTD</dt>
+	<dd>The message of the day. You can use the following replacements: %hostname%, %channels%</dd>
+</dl>

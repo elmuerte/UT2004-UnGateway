@@ -1,0 +1,215 @@
+<h1 class="ugh_cmd">abortshutdown</h1>
+<div class="ugh_app">Application: UGUT2004.GAppSystem</div>
+<div class="ugh_help">
+Abort the delayed shutdown.<br />
+</div>
+<h1 class="ugh_cmd">admin</h1>
+<div class="ugh_app">Application: UGUT2004.GAppSettings</div>
+<div class="ugh_help">
+Manage admins.<br />
+This command is only available when using the so called xAdmin system.<br />
+Usage: admin &lt;list|add|remove|edit|password|master&gt; ...<br />
+Usage: admin add &lt;username&gt;<br />
+Usage: admin remove &lt;username&gt;<br />
+Usage: admin edit &lt;username&gt; &lt;password|addgroup|delgroup|addmgroup|delmgroup|addpriv|delpriv|setpriv&gt; ...<br />
+</div>
+<h1 class="ugh_cmd">ban</h1>
+<div class="ugh_app">Application: UGUT2004.GAppSystem</div>
+<div class="ugh_help">
+Ban a player from the current game.<br />
+Usage: ban &lt;name|id&gt;<br />
+</div>
+<h1 class="ugh_cmd">cancelsettings</h1>
+<div class="ugh_app">Application: UGUT2004.GAppSettings</div>
+<div class="ugh_help">
+Discard any changes made to the current settings.<br />
+</div>
+<h1 class="ugh_cmd">console</h1>
+<div class="ugh_app">Application: UnGateway.GAppDebug</div>
+<div class="ugh_help">
+Execute a console command.<br />
+The console command will be executed as the system, not as the logged in user.<br />
+</div>
+<h1 class="ugh_cmd">cronadd</h1>
+<div class="ugh_app">Application: UnGateway.GAppCron</div>
+<div class="ugh_help">
+Add a new item to the cron table<br />
+Usage: cronadd &lt;type&gt; &lt;time config&gt; &lt;command ...&gt;<br />
+</div>
+<h1 class="ugh_cmd">crondel</h1>
+<div class="ugh_app">Application: UnGateway.GAppCron</div>
+<div class="ugh_help">
+Delete a entry in the cron table<br />
+Usage: crondel &lt;index&gt;<br />
+</div>
+<h1 class="ugh_cmd">crondisable</h1>
+<div class="ugh_app">Application: UnGateway.GAppCron</div>
+<div class="ugh_help">
+Disable a cron table entry<br />
+Usage: crondisable &lt;index&gt; ...<br />
+</div>
+<h1 class="ugh_cmd">cronenable</h1>
+<div class="ugh_app">Application: UnGateway.GAppCron</div>
+<div class="ugh_help">
+Enable a cron table entry<br />
+Usage: cronenable &lt;index&gt; ...<br />
+</div>
+<h1 class="ugh_cmd">cronlist</h1>
+<div class="ugh_app">Application: UnGateway.GAppCron</div>
+<div class="ugh_help">
+List the cron table<br />
+</div>
+<h1 class="ugh_cmd">dump</h1>
+<div class="ugh_app">Application: UnGateway.GAppDebug</div>
+<div class="ugh_help">
+Dump all available commands and help to the file UnGateway-help.html<br />
+</div>
+<h1 class="ugh_cmd">echo</h1>
+<div class="ugh_app">Application: UnGateway.GAppDebug</div>
+<div class="ugh_help">
+A simple echo command.<br />
+It will echo each argument on a single line<br />
+Usage: echo "some text"<br />
+</div>
+<h1 class="ugh_cmd">edit</h1>
+<div class="ugh_app">Application: UGUT2004.GAppSettings</div>
+<div class="ugh_help">
+Change the class to edit.<br />
+The class must be a fully qualified name: package.class<br />
+It's also possible to edit a complete game type. In that case use: -game &lt;name or class of the gametype&gt;<br />
+Usage: edit [-game] &lt;class name&gt;<br />
+</div>
+<h1 class="ugh_cmd">gametypes</h1>
+<div class="ugh_app">Application: UGUT2004.GAppSystem</div>
+<div class="ugh_help">
+Show all available game types.<br />
+By default all game types are listed, but you can also provide a name to match.<br />
+Usage: gametypes &lt;match&gt;<br />
+</div>
+<h1 class="ugh_cmd">group</h1>
+<div class="ugh_app">Application: UGUT2004.GAppSettings</div>
+<div class="ugh_help">
+Manage user groups.<br />
+This command is only available when using the so called xAdmin system.<br />
+Usage: group &lt;list|add|remove|edit|master&gt; ...<br />
+</div>
+<h1 class="ugh_cmd">help</h1>
+<div class="ugh_app">Application: UnGateway.GAppDefault</div>
+<div class="ugh_help">
+Show help about commands<br />
+Usage: help &lt;command&gt;<br />
+</div>
+<h1 class="ugh_cmd">kick</h1>
+<div class="ugh_app">Application: UGUT2004.GAppSystem</div>
+<div class="ugh_help">
+Kick a player from the current game.<br />
+Usage: kick &lt;name|id&gt;<br />
+</div>
+<h1 class="ugh_cmd">list</h1>
+<div class="ugh_app">Application: UnGateway.GAppDefault</div>
+<div class="ugh_help">
+Show various lists.<br />
+cmd	show registered commands<br />
+app	show loaded applications<br />
+if	show loaded interfaces<br />
+client	show connected clients<br />
+</div>
+<h1 class="ugh_cmd">maplist</h1>
+<div class="ugh_app">Application: UGUT2004.GAppSettings</div>
+<div class="ugh_help">
+Manage map lists.<br />
+This command will allow you to create, delete, rename, list or activate map lists.<br />
+It will also allow you to change the maplist that can be edited with 'mledit'.<br />
+To list maplists of other game types than the current game type use: maplist list package.gametype<br />
+Usage: maplist &lt;create|delete|rename|edit|activate|list&gt; ...<br />
+</div>
+<h1 class="ugh_cmd">maps</h1>
+<div class="ugh_app">Application: UGUT2004.GAppSystem</div>
+<div class="ugh_help">
+Show all available maps.<br />
+By default all maps are listed, but you can also provide a name to match.<br />
+Usage: maps &lt;match&gt;<br />
+</div>
+<h1 class="ugh_cmd">mledit</h1>
+<div class="ugh_app">Application: UGUT2004.GAppSettings</div>
+<div class="ugh_help">
+Edit a map list.<br />
+With the command you can edit the current maplist.<br />
+Use the 'maplist' command to change the maplist being edited.<br />
+mledit &lt;add|remove|move|list|save|abort|available&gt; ...<br />
+</div>
+<h1 class="ugh_cmd">mutators</h1>
+<div class="ugh_app">Application: UGUT2004.GAppSystem</div>
+<div class="ugh_help">
+Show all available mutators.<br />
+By default all mutators are listed, but you can also provide a name to match.<br />
+Usage: mutators &lt;match&gt;<br />
+</div>
+<h1 class="ugh_cmd">players</h1>
+<div class="ugh_app">Application: UGUT2004.GAppSystem</div>
+<div class="ugh_help">
+Show details about the current players and spectators.<br />
+When an ID is provided more details will be shown about this user.<br />
+Usage: players [id|name] ...<br />
+</div>
+<h1 class="ugh_cmd">policy</h1>
+<div class="ugh_app">Application: UGUT2004.GAppSettings</div>
+<div class="ugh_help">
+Manage access policies.<br />
+Without any arguments the current access policy will be listed.<br />
+Usage: policy &lt;add|remove&gt; ...<br />
+</div>
+<h1 class="ugh_cmd">privilege</h1>
+<div class="ugh_app">Application: UGUT2004.GAppSettings</div>
+<div class="ugh_help">
+List all privileges.<br />
+Usage: privilege &lt;match&gt;<br />
+</div>
+<h1 class="ugh_cmd">quit</h1>
+<div class="ugh_app">Application: UnGateway.GAppDefault</div>
+<div class="ugh_help">
+Logout<br />
+</div>
+<h1 class="ugh_cmd">savesettings</h1>
+<div class="ugh_app">Application: UGUT2004.GAppSettings</div>
+<div class="ugh_help">
+Save the settings you've made.<br />
+Settings are not saved until you execute this command.<br />
+</div>
+<h1 class="ugh_cmd">say</h1>
+<div class="ugh_app">Application: UGUT2004.GAppSystem</div>
+<div class="ugh_help">
+Say something on the server.<br />
+Usage: say message ...<br />
+</div>
+<h1 class="ugh_cmd">servertravel</h1>
+<div class="ugh_app">Application: UGUT2004.GAppSystem</div>
+<div class="ugh_help">
+Executes a server travel.<br />
+Use this to change the current map of the server.<br />
+When no url is given the last url will be used.<br />
+Usage: servertravel [url]<br />
+</div>
+<h1 class="ugh_cmd">set</h1>
+<div class="ugh_app">Application: UGUT2004.GAppSettings</div>
+<div class="ugh_help">
+Change or list the settings.<br />
+When called without any arguments it will list all setting groups.<br />
+You can use wild cards to match groups or settings.<br />
+To list all settings in a group use: set -list &lt;groupname&gt; ...<br />
+To list all settings matching a name use: set &lt;match&gt;<br />
+To edit a setting use: set &lt;setting&gt; &lt;new value ...&gt;<br />
+</div>
+<h1 class="ugh_cmd">shutdown</h1>
+<div class="ugh_app">Application: UGUT2004.GAppSystem</div>
+<div class="ugh_help">
+Shutdown the server with a delay.<br />
+Use the command abortshutdown to abort the delayed shutdown.<br />
+To shutdown the server immediately use 'now' as the delay. this shutdown can not be aborted.<br />
+Usage: shutdown &lt;delay|now&gt; [message]<br />
+</div>
+<h1 class="ugh_cmd">test</h1>
+<div class="ugh_app">Application: UnGateway.GAppDebug</div>
+<div class="ugh_help">
+Various tests for debugging.<br />
+</div>

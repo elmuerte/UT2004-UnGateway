@@ -1,0 +1,55 @@
+<h1>Usage</h1>
+Ofcourse each interface work differently.
+
+<h2>Telnet</h2>
+<p>
+Any telnet client should work with the telnet server, however for MS Window I advise you to use the free client PuTTY. It's much better than the standard MS Telnet client.
+</p>
+<p>
+The rest of the system works pretty much like a GNU BASH shell. Here's an overview of all special keyboard commands:
+<table>
+<tr>
+	<th>key</th><th>description</th>
+</tr>
+<tr><td><code>backspace</code></td><td>delete the previous character</td></tr>
+<tr><td><code>tab</code></td><td>perform tab completion to complete the current command. <br />Note: currently this only works for the commands, not the command parameters</td></tr>
+
+<tr><td><code>Alt+c</code></td><td>toggle partial chat mode</td></tr>
+<tr><td><code>Alt+C</code></td><td>enter full chat mode. to exit the full chat mode press <code>Ctrl+D</code></td></tr>
+
+<tr><td><code>Ctrl+A</code></td><td>move the cursor to the beginning of the line</td></tr>
+<tr><td><code>Ctrl+D</code></td><td>delete the next character, on an empty line: logout</td></tr>
+<tr><td><code>Ctrl+E</code></td><td>move the cursor to the end of the line</td></tr>
+<tr><td><code>Ctrl+K</code></td><td>cut the text from the cursor to the end of the line to the clipboard</td></tr>
+
+<tr><td><code>Ctrl+Y</code></td><td>paste the current clipboard buffer</td></tr>
+
+<tr><td><code>Arrow down</code></td><td>scroll forward in the history</td></tr>
+<tr><td><code>Arrow left</code></td><td>move the cursor to the left</td></tr>
+<tr><td><code>Arrow right</code></td><td>move the cursor to the right</td></tr>
+<tr><td><code>Arrow up</code></td><td>scroll back in the history</td></tr>
+</table>
+</p>
+<p>
+By default the internal pager is enbaled. This means if a command shows more information that you have room on your screen it will start the pager that will allow you to scroll up (<code>PageUp</code>) and scroll down (<code>PageDown</code>) to view all data. To exit the pager either press <code>Ctrl+C</code> or <code>Q</code>.
+</p>
+
+
+<h2>IRC</h2>
+<p>
+The IRC server works pretty much like any other IRC server. However not all functionality is has been implemented.<br />
+By default two channels are created, the game channel and the admin channel (&Admin). The name of the game channel is contructed from the server's IP and port. By default the available IRC channels are listed in the MOTD, otherwise you can use the <code>/list</code> command to list all available channels.
+</p>
+
+<h3>Game channel</h3>
+The game channel is much like a normal IRC channel, by default everything you say will be said on the server, and vice versa. The players in the game join and part this channel automatically.
+
+<h3>Admin channel (&Admin)</h3>
+The admin channel is a special channel (and only local on a server) where you can enter the UnGateway commands. These commands have to be prefixed with a <code>.</code> (a period). Commands not prefixed with a <code>.</code> will just be said on the admin channel, other IRC admins logged in on this channel will also see this.<br />
+The admin channel is only available to logged in admins.
+
+<h3>Logging in</h3>
+There are two ways you can log in. If you specify a password during login the system will automatically try to log you in as an admin. If you don't specify a password you will log in as a normal user. <br />
+To log in as an admin you will have to use the <code>/oper</code> command.<br />
+When you are logged in as an IRC Oper/Admin you will be able to join the Admin channel, and you can see the complete user details when using <code>/whois</code>.
+
