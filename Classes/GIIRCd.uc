@@ -1,7 +1,7 @@
 /**
 	GIIRCd
 	IRC server
-	$Id: GIIRCd.uc,v 1.5 2003/09/08 20:01:08 elmuerte Exp $
+	$Id: GIIRCd.uc,v 1.6 2003/09/11 10:00:41 elmuerte Exp $
 */
 class GIIRCd extends UnGatewayInterface;
 
@@ -17,6 +17,29 @@ struct IRCUserRecord
 	var GCIRC client;
 };
 var array<IRCUserRecord> IRCUsers;
+
+struct LocalChannelRecord
+{
+	var string Name;		// channel name
+	var string Topic;		// channel topic
+	var int Topictime;
+	var bool bLocal;		// local only
+	var bool bAdmin;		// is admin channel
+	var string Mode;
+	var string Key;
+	var int Limit;
+	var int Count;
+	var int TimeStamp;
+	var array<string> Bans;
+};
+var array<LocalChannelRecord> Channels;
+
+function Create(GatewayDaemon gwd)
+{
+	Super.Create(gwd);
+	CreateChannel("&admin",, true, true);
+	CreateChannel("#"$gateway.hostaddress$"_"$Level.Game.GetServerPort());
+}
 
 function GainedClient(UnGatewayClient client)
 {
@@ -84,6 +107,16 @@ function int GetIRCUser(GCIRC client, optional bool bDontAdd)
 	IRCUsers[IRCUsers.length-1].Userhost = client.sUserhost;
 	IRCUsers[IRCUsers.length-1].PC = client.PlayerController;
 	return IRCUsers.length-1;
+}
+
+/** return if a userhost is banned from a channel */
+function bool IsBanned(int ChannelId, string UserHost)
+{
+	return false;
+}
+
+function CreateChannel(string ChannelName, optional string Topic, optional bool bLocal, optional bool bAdmin)
+{
 }
 
 defaultproperties

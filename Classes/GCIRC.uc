@@ -2,7 +2,7 @@
 	GCIRC
 	IRC client, spawned from GIIRCd
 	RFC: 1459
-	$Id: GCIRC.uc,v 1.4 2003/09/08 20:01:08 elmuerte Exp $
+	$Id: GCIRC.uc,v 1.5 2003/09/11 10:00:41 elmuerte Exp $
 */
 class GCIRC extends UnGatewayClient;
 
@@ -10,15 +10,16 @@ class GCIRC extends UnGatewayClient;
 var config bool bShowMotd;
 /** Message of the Day */
 var config array<string> MOTD;
+/** Maximum Channels a user can join */
+var int MaxChannels;
 
-struct ChannelRecord
+struct UserChannelRecord
 {
-	var string name;
-	var string topic;
+	var int channel; // pointer to the channel record
+	var string UserMode; // user mode
 };
-
-/** listening on these channels */
-var array<ChannelRecord> Channels;
+/** listening on the channels this client is in */
+var array<UserChannelRecord> Channels;
 
 /** userhost string: username@hostname*/
 var string sUserhost;
@@ -28,7 +29,7 @@ event Accepted()
 	Super.Accepted();
 }
 
-// send RAW irc
+/** send RAW irc reply */
 function SendIRC(string data, coerce string code)
 {
 	local string nm;
@@ -37,6 +38,29 @@ function SendIRC(string data, coerce string code)
 		else nm = "*";
 	// :<server host> <code> <nickname> <additional data>
 	SendText(":"$interface.gateway.hostname@code@nm@data);
+}
+
+/** 
+	return true if this user is in the channel 
+	using the channel record pointer is faster
+*/
+function bool IsIn(optional string channelname, optional int id)
+{
+	local int i;
+	if (channelname == "")
+	{
+		for (i = 0; i < Channels.length; i++)
+		{
+			if (Channels[i].channel == id) return true;
+		}
+	}
+	else {
+		for (i = 0; i < Channels.length; i++)
+		{
+			if (GIIRCd(Interface).Channels[Channels[i].channel].Name ~= channelname) return true;
+		}
+	}
+	return false;
 }
 
 auto state Login
@@ -163,7 +187,7 @@ state Loggedin
 												}
 											}
 											else {
-												for (i = 0; i < Channels.length; i++) ircExecNAMES(Channels[i].Name);
+												for (i = 0; i < Channels.length; i++) ircExecNAMES(GIIRCd(Interface).Channels[Channels[i].Channel].Name);
 											}
 											break;
 			//case "LIST":		not supported, yet
@@ -245,6 +269,8 @@ begin:
 	if (bShowMotd) ircExecMOTD();
 }
 
+///////////////////////////////// IRC COMMANDS /////////////////////////////////
+
 function ircExecMOTD()
 {
 	local int i;
@@ -271,7 +297,59 @@ function ircExecQUIT(optional string QuitMsg, optional bool bDontClose)
 
 function ircExecJOIN(string channel, optional string key)
 {
-	//..
+	local int i, id;
+	if (Channels.length >= MaxChannels)
+	{
+		// ERR_TOOMANYCHANNELS
+		return;
+	}
+	id = -1;
+	for (i = 0; i < Channels.length; i++)
+	{
+		if (GIIRCd(Interface).Channels[Channels[i].channel].Name ~= channel)
+		{
+			id = Channels[i].channel;
+			break;
+		}
+	}
+	if (id == -1) // create the channel
+	{
+		// ERR_NOSUCHCHANNEL
+		//Channels.length = Channels.length+1;
+		//Channels[Channels.length-1].Channel = GIIRCd(Interface).CreateChannel(channel);
+	}
+	else {
+		if (IsIn(, id)) // already in this channel
+		{
+		}
+		else {			
+			if (GIIRCd(Interface).Channels[id].Key != "" && GIIRCd(Interface).Channels[id].Key != Key)
+			{
+				// incorrect key
+				// ERR_BADCHANNELKEY
+			}
+			else if (GIIRCd(Interface).Channels[id].Limit <= GIIRCd(Interface).Channels[id].Count)
+			{
+				// channel full
+				// ERR_CHANNELISFULL
+			}
+			else if (GIIRCd(Interface).IsBanned(id, sUsername$"!"$sUserhost))
+			{
+				// is banned
+				// ERR_BANNEDFROMCHAN
+			}
+			else if (InStr(GIIRCd(Interface).Channels[id].Mode, "i") > -1)
+			{
+				// ERR_INVITEONLYCHAN
+			}
+			else {
+				Channels.length = Channels.length+1;
+				Channels[Channels.length-1].Channel = id;
+				GIIRCd(Interface).Channels[id].Count++;
+				ircExecTOPIC(channel);
+			}
+		}
+	}
 }
 
 function ircExecPART(string channel)
@@ -299,7 +377,7 @@ function ircExecVERSION(optional string server)
 	if (server == "")
 	{
 		SendIRC(":"$interface.gateway.hostname@"UnrealWarfare/"$Level.EngineVersion@Interface.gateway.Ident@Interface.Ident, "004");
-		SendIRC("PREFIX=(ov)@+ MODES=3 CHANTYPES=#& MAXCHANNELS=2 NICKLEN=9 TOPICLEN=160 KICKLEN=160 NETWORK=... CHANMODES=... :are supported by this server", "004");
+		SendIRC("PREFIX=(ov)@+ MODES=3 CHANTYPES=#& MAXCHANNELS="$MaxChannels$" NICKLEN=9 TOPICLEN=160 KICKLEN=160 NETWORK=... CHANMODES=... :are supported by this server", "004");
 	}
 }
 
@@ -326,6 +404,7 @@ function ircExecKILL(string nick, string message)
 defaultproperties
 {
 	bShowMotd=true
+	MaxChannels=2
 
 	MOTD[0]=""
 	MOTD[1]="                               _gp-!NXs<_=.=<d+~.,     _ "
