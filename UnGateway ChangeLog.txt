@@ -1,3 +1,7 @@
+Saturday, May 01, 2004
+- Fixed bug in the auth system
+- Added admin,group and privilege commands
+
 Wednesday, April 21, 2004
 - Added policy editing commands
 - Added kick and ban commands
