@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UnGatewayClient.uc,v 1.16 2004/04/15 14:41:32 elmuerte Exp $ -->
+	<!-- $Id: UnGatewayClient.uc,v 1.17 2004/04/15 20:37:51 elmuerte Exp $ -->
 *******************************************************************************/
 class UnGatewayClient extends TCPLink abstract config;
 
@@ -62,6 +62,12 @@ event Closed()
 {
 	Interface.Gateway.Logf("Closed", Name, Interface.Gateway.LOG_EVENT);
 	Interface.Gateway.Logout(Self);
+	// get rid of PC
+	PlayerController.client = none;
+	PlayerController.Destroy();
+	PlayerController = none;
+	Interface = none;
+	Destroy();
 }
 
 /** don't override, use the delegate */
@@ -180,5 +186,5 @@ function int AdvSplit(string input, string delim, out array<string> elm, optiona
 defaultproperties
 {
 	PlayerControllerClass=class'UnGateway.UnGatewayPlayer'
-	CVSversion="$Id: UnGatewayClient.uc,v 1.16 2004/04/15 14:41:32 elmuerte Exp $"
+	CVSversion="$Id: UnGatewayClient.uc,v 1.17 2004/04/15 20:37:51 elmuerte Exp $"
 }

@@ -10,7 +10,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCTelnet.uc,v 1.21 2004/04/15 14:41:32 elmuerte Exp $	-->
+	<!-- $Id: GCTelnet.uc,v 1.22 2004/04/15 20:37:51 elmuerte Exp $	-->
 *******************************************************************************/
 class GCTelnet extends UnGatewayClient;
 
@@ -154,8 +154,8 @@ var protected string LastHistoryInput;
 var protected string ClipBoard;
 /** used to detect double tabs for tab completion, second tab will display a list */
 var protected bool bTabComplRepeat;
-/** window size: x,y */
-var protected int WindowSize[2];
+/** window size: x,y, top line, window size */
+var protected int WindowSize[4];
 /** terminal type string send */
 var protected string TerminalType;
 /** buffer used by the internal pager */
@@ -164,10 +164,12 @@ var protected array<string> PagerBuffer;
 var protected int PagerLineCount;
 /** current offset in the pagers */
 var protected int PagerOffset;
+/** the partial chat history to draw */
+var protected array<string> PartialChatHist;
 
 // localization
 var localized string msgUsername, msgPassword, msgLoginFailed, msgTooManuLogins,
-						msgUnknownCommand, msgPagerMore;
+						msgUnknownCommand, msgPagerMore, msgFullChatMode;
 
 /** cursor key movements */
 enum ECursorKey
@@ -259,6 +261,8 @@ event Accepted()
 
 	WindowSize[0] = 80;
 	WindowSize[1] = 25;
+	WindowSize[2] = 1;
+	WindowSize[3] = WindowSize[1];
 
 	if (bDisableAuth)
 	{
@@ -277,8 +281,8 @@ event Accepted()
 
 event Closed()
 {
-	super.Closed();
 	if (bSaveHistory) SaveHistory();
+	super.Closed();
 }
 
 /**
@@ -304,7 +308,6 @@ function defReceiveInput(int Count, byte B[255])
 		{
 			if (OnNewline())
 			{
-				cursorpos[1] = min(WindowSize[1], cursorpos[1]+1);
 				SendLine(); // send a newline
 			}
 			OnReceiveLine(inbuffer);
@@ -631,6 +634,7 @@ function int ProcTelnetSubNegotiation( int pos, int Count, byte B[255] )
 		case O_NAWS:		// window size
 					windowsize[0] = B[++pos]*256+B[++pos];
 					windowsize[1] = B[++pos]*256+B[++pos];
+					WindowSize[3] = WindowSize[1];
 					pos += 2;
 					length = 6;  // last is T_IAC
 					Interface.gateway.Logf("Window size ="@windowsize[0]@"x"@windowsize[1], Name, Interface.gateway.LOG_DEBUG);
@@ -671,8 +675,9 @@ function SendPrompt()
 	line = repl(line, "%hostname%", Interface.gateway.hostname);
 	line = repl(line, "%hostaddress%", Interface.gateway.hostaddress);
 	line = repl(line, "%clientaddress%", ClientAddress);
+	SetCursor(1, cursorpos[1]);
 	SendText(line);
-	cursorpos[0] = Len(line)-1;
+	cursorpos[0] = Len(line)+1;
 	cursorpos[2] = cursorpos[0]; // set init-x
 }
 
@@ -890,12 +895,14 @@ state login
 	{
 		if (sUsername == "")
 		{
+			cursorpos[1] = min(WindowSize[1], cursorpos[1]+1);
 			sUsername = input;
 			bEcho = false;
 			SendText(msgPassword);
 			if (sUsername == "") sUsername = Chr(1);
 		}
 		else {
+			cursorpos[1] = min(WindowSize[1], cursorpos[1]+1);
 			sPassword = input;
 			bEcho = true;
 			if (Interface.gateway.login(self, sUsername, sPassword, interface.ident))
@@ -991,15 +998,44 @@ state logged_in
 
 	function procMeta(string key)
 	{
-		if (key == "c")
+		local int i;
+		if (key == "C") // full chat
 		{
 			if (inbuffer == "")
 			{
+				if (ChatMode == CM_Partial)
+				{
+					procMeta("c");
+				}
 				SendLine();
 				ChatMode = CM_Full;
 				GotoState('FullChatMode');
 			}
 			else Bell();
+		}
+		else if (key == "c") //partial chat
+		{
+			if (ChatMode == CM_Disabled)
+			{
+				PartialChatHist.length = 0;
+				ChatMode = CM_Partial;
+				for (i = 1; i < 6; i++)
+				{
+					SetCursor(1,i);
+					SendText(Chr(C_ESC)$"[K");
+				}
+				WindowSize[2] = 5;
+				WindowSize[3] = WindowSize[1]-WindowSize[2];
+				SendText(Chr(C_ESC)$"[6;"$(WindowSize[1])$"r");
+				SetCursor(cursorpos[0], cursorpos[1]);
+			}
+			else {
+				WindowSize[3] = WindowSize[1];
+				WindowSize[2] = 1;
+				SendText(Chr(C_ESC)$"[1;"$(WindowSize[1])$"r");
+				SetCursor(cursorpos[0], cursorpos[1]);
+				ChatMode = CM_Disabled;
+			}
 		}
 	}
 
@@ -1036,11 +1072,13 @@ state paged
 				case 113:
 				case 81:	ClearResetLine();
 							PagerBuffer.length = 0;
+							PagerOffset = 0;
+							PagerLineCount = 0;
 							GotoState('logged_in');
 							break;
 				case 13:	PagerScroll(1); // one line
 							break;
-				case 32:	PagerScroll(WindowSize[1]); // one page
+				case 32:	PagerScroll(WindowSize[3]-1); // one page
 							break;
 			}
 		}
@@ -1055,9 +1093,9 @@ state paged
 								break;
 			case ECK_Down:		PagerScroll(1);
 								break;
-			case ECK_PageUp:	PagerScroll(-(WindowSize[1]-1));
+			case ECK_PageUp:	PagerScroll(-(WindowSize[3]-1));
 								break;
-			case ECK_PageDown:	PagerScroll(WindowSize[1]-1);
+			case ECK_PageDown:	PagerScroll(WindowSize[3]-1);
 								break;
 			case ECK_Home:		PagerScroll(-PagerBuffer.Length);
 								break;
@@ -1071,8 +1109,8 @@ state paged
 	{
 		local int i, OldOffset;
 		OldOffset = PagerOffset;
-		PagerOffset = clamp(PagerOffset+lines, 0, PagerBuffer.Length-WindowSize[1]+1);
-		lines = clamp(PagerOffset-OldOffset, -(WindowSize[1]-1), WindowSize[1]-1);
+		PagerOffset = clamp(PagerOffset+lines, 0, PagerBuffer.Length-WindowSize[3]+1);
+		lines = clamp(PagerOffset-OldOffset, -(WindowSize[3]-1), WindowSize[3]-1);
 		if (lines == 0)
 		{
 			Bell();
@@ -1081,7 +1119,7 @@ state paged
 		else if (lines > 0)
 		{
 			ClearResetLine();
-			for (i = WindowSize[1]+PagerOffset-lines-1; i < WindowSize[1]+PagerOffset-1; i++)
+			for (i = WindowSize[3]+PagerOffset-lines-1; i < WindowSize[3]+PagerOffset-1; i++)
 			{
 				SendLine(PagerBuffer[i]);
 			}
@@ -1090,13 +1128,13 @@ state paged
 		else if (lines < 0)
 		{
 			lines = lines*-1;
-			SendText(chr(27)$"[1;1H"$chr(27)$"["$string(lines)$"L");
+			SendText(chr(27)$"["$(WindowSize[2])$";1H"$chr(27)$"["$string(lines)$"L");
 			for (i = PagerOffset; i < PagerOffset+lines; i++)
 			{
 				SendLine(PagerBuffer[i]);
 			}
 			SendText(chr(27)$"["$(WindowSize[1])$";1H");
-			PagerStatus(PagerOffset+WindowSize[1]-2);
+			PagerStatus(PagerOffset+WindowSize[3]-2);
 		}
 	}
 
@@ -1119,7 +1157,7 @@ begin:
 	OnTabComplete=none;
 	OnMetaKey=none;
 	PagerOffset = 0;
-	PagerStatus(WindowSize[1]-2);
+	PagerStatus(WindowSize[3]-2);
 }
 
 state FullChatMode
@@ -1165,7 +1203,7 @@ begin:
 	OnNewline=procNewline;
 	OnMetaKey=none;
 	SendText(Chr(C_ESC)$"[44;37m");
-	output("-- You are now in chat mode, press Ctrl+D or /quit to leave chat mode --");
+	output(msgFullChatMode);
 	SendText(Chr(C_ESC)$"[0m");
 	tmpCmdHist=CommandHistory;
 	CommandHistory.length = 0;
@@ -1230,7 +1268,7 @@ protected function internalOutput(coerce string data)
 	else {
 		PagerBuffer.length = PagerBuffer.length+1;
 		PagerBuffer[PagerBuffer.length-1] = data;
-		if (PagerLineCount < (WindowSize[1]-1))
+		if (PagerLineCount < (WindowSize[3]-1))
 		{
 			SendLine(data);
 			PagerLineCount++;
@@ -1260,8 +1298,29 @@ function outputChat(coerce string pname, coerce string message, optional name Ty
 	}
 	else if (ChatMode == CM_Partial)
 	{
-		// TODO:
+		drawPartialChat("<"$pname$">"@message);
 	}
+}
+
+/** draw the partial chat window */
+function drawPartialChat(string newline)
+{
+	//local array<string> tmp;
+	local int i;
+
+	PartialChatHist[PartialChatHist.Length] = newline;
+	if (PartialChatHist.Length > WindowSize[2]) PartialChatHist.Remove(0, PartialChatHist.Length-WindowSize[2]);
+
+	SendText(Chr(C_ESC)$"[1;34m"$Chr(C_ESC));
+	SetCursor(1, WindowSize[2]);
+	for (i = 0; i < PartialChatHist.length; i++)
+	{
+		SetCursor(1, WindowSize[2]-i);
+		SendText(PartialChatHist[PartialChatHist.length-i-1]);
+		SendText(Chr(C_ESC)$"[K");
+	}
+	SendText(Chr(C_ESC)$"[0m");
+	SetCursor(cursorpos[0], cursorpos[1]);
 }
 
 /**
@@ -1286,7 +1345,7 @@ function SendChatPrompt(optional bool bNoBuffer)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.21 2004/04/15 14:41:32 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.22 2004/04/15 20:37:51 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0
@@ -1303,6 +1362,7 @@ defaultproperties
 	msgTooManuLogins="Too many login tries, goodbye!"
 	msgUnknownCommand="Unknown command: %command%"
 	msgPagerMore="pager: %begin% - %end% (%percent%%)"
+	msgFullChatMode="-- You are now in chat mode, press Ctrl+D or /quit to leave chat mode --"
 
 	bShowMotd=true
 	MOTD[0]=""
