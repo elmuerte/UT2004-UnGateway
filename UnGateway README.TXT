@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 
 				   UnGateway
-                                version 100 Beta
+                                version 101 Beta
                           Michiel "El Muerte" Hendriks
                            elmuerte@drunksnipers.com
 
@@ -17,6 +17,10 @@ The telnet server has been tested with the Linux telnet client and a MS Windows
 telnet client: PuTTY. The MS Telnet client that comes with every MS Windows
 version also works, but it's advised to use a different telnet client (like 
 PuTTY, free software).
+
+Security notice: the telnet protocol is plain text, there is no form of 
+encryption. On the side note: the UT2004 webadmin does not have any better
+protection.
 
 -------------------------------------------------------------------------------
 Installation:
@@ -77,6 +81,8 @@ Each interface contains at least the following configuration variables:
 
 * int: iListenPort
 	The port this interface will listen on. It should be an unused port.
+	No interface has a default listen port configured, thus you should
+	always have to set this option or else it won't work.
 * bool: bUseNextAvailable
 	If the current listen port is in use, pick the next available port.
 * int: iMaxClients
@@ -188,4 +194,6 @@ EC_Time:
 	Note: instead of Alt the Esc can be used
 
 
-Note: IRC configuration variable omitted
+Note: IRCd configuration variables omitted because of the implementation state
+of this interface.
+

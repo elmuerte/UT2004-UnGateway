@@ -5,9 +5,10 @@ name=UnGateway Base
 System\wUtils105.u
 System\UnGateway.u
 System\UnGateway.int
-Help\UnGateway-help.txt
+Help\UnGateway-help.html
 Help\UnGateway LICENSE.TXT
 Help\UnGateway README.TXT
+Help\UnGateway ChangeLog.txt
 [Group]
 name=UT2004 Applications
 System\UGUT2004.u
@@ -35,12 +36,12 @@ versionURL=http://unreal.epicgames.com/
 developerURL=http://www.epicgames.com/
 [Product]
 product=UnGateway
-version=100
+version=101
 developer=Michiel "El Muerte" Hendriks
 productURL=http://ungateway.elmuerte.com
 versionURL=http://ungateway.elmuerte.com
 developerURL=http://ut2004.elmuerte.com/About
-readme=Help\UnGateway-help.txt
+readme=Help\UnGateway README.TXT
 title=UnGateway Setup
 cleanup=True
 license=UnGateway LICENSE.int
