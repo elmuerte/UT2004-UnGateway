@@ -3,7 +3,7 @@
 	Telnet client, spawned from GITelnetd
 	Note: windows telnet client should use ANSI not VT100
 	RFC: 318, 513, 764, 854, 855, 857, 858, 859, 884, 930, 1073, 1091, 1116, 1572
-	$Id: GCTelnet.uc,v 1.5 2004/01/02 09:19:24 elmuerte Exp $
+	$Id: GCTelnet.uc,v 1.6 2004/01/02 11:30:55 elmuerte Exp $
 */
 class GCTelnet extends UnGatewayClient;
 
@@ -41,6 +41,8 @@ const T_DONT		= 254;
 const T_SB			= 250;
 /** Telnet command: End of subnegotiation parameters */
 const T_SE			= 240;
+/** Telnet command: No operation. */
+const T_NOP			= 241;
 
 /**
 	Telnet option:
@@ -284,27 +286,27 @@ function int defProcEscape(int pos, int Count, byte B[255])
 		switch (B[pos])
 		{
 			case 65:	length++; // A=Up
-								DisplayCommandHistory(1);
-								break;
+						DisplayCommandHistory(1);
+						break;
 			case 66:	length++; // B=Down
-								DisplayCommandHistory(-1);
-								break;
+						DisplayCommandHistory(-1);
+						break;
 			case 67:	if (cursorpos[0] < Len(inbuffer)+cursorpos[2]) // C=Right
-								{
-									if (v1 == 0) v1++;
-									cursorpos[0] += v1;
-									SendText(Chr(C_ESC)$"["$val1$"C");
-								}
-								length++;
-								break;
+						{
+							if (v1 == 0) v1++;
+							cursorpos[0] += v1;
+							SendText(Chr(C_ESC)$"["$val1$"C");
+						}
+						length++;
+						break;
 			case 68:	if (cursorpos[0] > cursorpos[2]) // D=Left
-								{
-									if (v1 == 0) v1++;
-									cursorpos[0] -= v1;
-									SendText(Chr(C_ESC)$"["$val1$"D");
-								}
-								length++;
-								break;
+						{
+							if (v1 == 0) v1++;
+							cursorpos[0] -= v1;
+							SendText(Chr(C_ESC)$"["$val1$"D");
+						}
+						length++;
+						break;
 			default:	interface.gateway.Logf("[defProcEscape] Unhandled escape code:"@B[pos], Name, interface.gateway.LOG_DEBUG);
 		}
 	}
@@ -336,7 +338,7 @@ function defTabComplete()
 			}
 			if (completion.Length == 1)
 			{
-				tmp = Mid(completion[0], sz);
+				tmp = Mid(completion[0], sz)$" ";
 				inbuffer $= tmp;
 				SendText(tmp);
 				cursorpos[0] += Len(tmp);
@@ -407,6 +409,10 @@ function int ProcTelnetProtocol( int pos, int Count, byte B[255] )
 							pos++;
 							if (pos > Count) return length;
 						}
+						length++;
+						break;
+		case T_NOP:		length++;
+						break;
 	}
 	bProcTelnet = false;
 	return length;
@@ -633,7 +639,7 @@ function outputError(string errormsg)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.5 2004/01/02 09:19:24 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.6 2004/01/02 11:30:55 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0

@@ -1,7 +1,7 @@
 /**
 	GAppDebug
 	Debug commands, should not be used in
-	$Id: GAppDebug.uc,v 1.4 2004/01/02 09:19:24 elmuerte Exp $
+	$Id: GAppDebug.uc,v 1.5 2004/01/02 11:30:55 elmuerte Exp $
 */
 class GAppDebug extends UnGatewayApplication;
 
@@ -63,19 +63,44 @@ function execHelp(UnGatewayClient client, array<string> cmd)
 function execList(UnGatewayClient client, array<string> cmd)
 {
 	local int i;
-	for (i = 0; i < CmdLookupTable.length; i++)
+	if (cmd.length != 1)
 	{
-		client.output(CmdLookupTable[i].Command);
+		client.outputError("Usage: list <cmd|app|if|client>");
+		return;
 	}
+
+	if (cmd[0] ~= "cmd")
+	{
+		for (i = 0; i < CmdLookupTable.length; i++)
+		{
+			client.output(CmdLookupTable[i].Command);
+		}
+	}
+	else if (cmd[0] ~= "app")
+	{
+		for (i = 0; i < Applications.length; i++)
+		{
+			client.output(Applications[i]@"-"@Applications[i].innerCVSversion);
+		}
+	}
+	else if (cmd[0] ~= "if")
+	{
+		for (i = 0; i < Interfaces.length; i++)
+		{
+			client.output(Interfaces[i]@"-"@Interfaces[i].CVSversion);
+		}
+	}
+	else if (cmd[0] ~= "client")
+	{
+		client.outputError("Not implemented");
+	}
+	else client.outputError("Usage: list <cmd|app|if|client>");
 }
 
 defaultproperties
 {
-	CVSversion="$Id: GAppDebug.uc,v 1.4 2004/01/02 09:19:24 elmuerte Exp $"
+	innerCVSversion="$Id: GAppDebug.uc,v 1.5 2004/01/02 11:30:55 elmuerte Exp $"
 	Commands[0]=(Name="echo",Help="Returns it's first argument||Usage: echo \"some text\"")
 	Commands[1]=(Name="help",Help="Show help about commands|This should be a built-in command||Usage: help <command>")
-	Commands[2]=(Name="list",Help="List all registered commands")
-	Commands[3]=(Name="test",Help="...")
-	Commands[4]=(Name="testin",Help="...")
-	Commands[5]=(Name="testings",Help="...")
+	Commands[2]=(Name="list",Help="Show various lists.|cmd	show registered commands|app	show loaded applications|if	show loaded interfaces|client	show connected clients")
 }

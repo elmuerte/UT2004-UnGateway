@@ -1,7 +1,7 @@
 /**
 	UnGatewayClient
 	client for TCP based services linked in the Gateway system
-	$Id: UnGatewayClient.uc,v 1.10 2004/01/02 09:19:24 elmuerte Exp $
+	$Id: UnGatewayClient.uc,v 1.11 2004/01/02 11:30:55 elmuerte Exp $
 */
 class UnGatewayClient extends TCPLink abstract config;
 
@@ -117,27 +117,44 @@ function outputError(string errormsg);
 function int AdvSplit(string input, string delim, out array<string> elm, optional string quoteChar)
 {
 	local int i;
+	local int delimlen, quotelen;
 	if (quoteChar == "") return Split(input, delim, elm);
+
+	delimlen = Len(delim);
+	quotelen = Len(quoteChar);
 	while (input != "")
 	{
-		elm.length = elm.length+1;
-		if (left(input, 1) == "\"")
+		if (elm.length > 0)
 		{
-			input = mid(input, 1);
-			i = InStr(input, "\"");
-			if (i == -1) i = Len(input);
-			elm[elm.length-1] = Left(input, i);
-			input = Mid(input, i+1);
+			if (left(input, delimlen) == delim)
+			{
+				input = Mid(input, delimlen);
+				elm.length = elm.length+1;
+			}
 		}
 		else {
-			i = InStr(input, " ");
-			if (i == -1) i = Len(input);
-			elm[elm.length-1] = Left(input, i);
-			input = Mid(input, i+1);
+			elm.length = 1;
 		}
-		if (left(input, 1) == " ")
+		if (left(input, quotelen) == quoteChar)
 		{
-			input = Mid(input, 1);
+			input = mid(input, quotelen);
+			i = InStr(input, quoteChar);
+			if (i == -1) i = Len(input);
+			while (mid(input, i-1, 1) == "\\")
+			{
+				elm[elm.length-1] $= Left(input, i-1)$quoteChar;
+				input = Mid(input, i+quotelen);
+				i = InStr(input, quoteChar);
+				if (i == -1) i = Len(input);
+			}
+			elm[elm.length-1] $= Left(input, i);
+			input = Mid(input, i+quotelen);
+		}
+		else {
+			i = InStr(input, delim);
+			if (i == -1) i = Len(input);
+			elm[elm.length-1] $= Left(input, i);
+			input = Mid(input, i);
 		}
 	}
 	return elm.length;
@@ -184,5 +201,5 @@ static final operator(44) string @= ( out string A, coerce string B )
 defaultproperties
 {
 	PlayerControllerClass=class'UnGateway.UnGatewayPlayer'
-	CVSversion="$Id: UnGatewayClient.uc,v 1.10 2004/01/02 09:19:24 elmuerte Exp $"
+	CVSversion="$Id: UnGatewayClient.uc,v 1.11 2004/01/02 11:30:55 elmuerte Exp $"
 }
