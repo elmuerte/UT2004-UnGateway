@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UnGatewayClient.uc,v 1.15 2004/04/14 13:39:18 elmuerte Exp $ -->
+	<!-- $Id: UnGatewayClient.uc,v 1.16 2004/04/15 14:41:32 elmuerte Exp $ -->
 *******************************************************************************/
 class UnGatewayClient extends TCPLink abstract config;
 
@@ -50,6 +50,7 @@ event Accepted()
 	ClientAddress = IpAddrToString(RemoteAddr);
 	ClientAddress = Left(ClientAddress, InStr(ClientAddress, ":"));
 	PlayerController = spawn(PlayerControllerClass, Self);
+	PlayerController.Create(self);
 	sUsername = "";
 	sPassword = "";
 	inbuffer = "";
@@ -121,10 +122,13 @@ event ReceivedBinary( int Count, byte B[255] )
 }
 
 /** return of a function call, ident is used to ident the data */
-function output(coerce string data, optional string ident);
+function output(coerce string data, optional string ident, optional bool bDontWrapFirst);
 
 /** return of a function call, ident is used to ident the data */
-function outputError(string errormsg, optional string ident);
+function outputError(string errormsg, optional string ident, optional bool bDontWrapFirst);
+
+/** will be called for chat messages */
+function outputChat(coerce string pname, coerce string message, optional name Type);
 
 /** split a string with quotes */
 function int AdvSplit(string input, string delim, out array<string> elm, optional string quoteChar)
@@ -176,5 +180,5 @@ function int AdvSplit(string input, string delim, out array<string> elm, optiona
 defaultproperties
 {
 	PlayerControllerClass=class'UnGateway.UnGatewayPlayer'
-	CVSversion="$Id: UnGatewayClient.uc,v 1.15 2004/04/14 13:39:18 elmuerte Exp $"
+	CVSversion="$Id: UnGatewayClient.uc,v 1.16 2004/04/15 14:41:32 elmuerte Exp $"
 }

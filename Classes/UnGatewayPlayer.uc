@@ -7,11 +7,13 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UnGatewayPlayer.uc,v 1.3 2004/04/06 19:12:00 elmuerte Exp $ -->
+	<!-- $Id: UnGatewayPlayer.uc,v 1.4 2004/04/15 14:41:32 elmuerte Exp $ -->
 *******************************************************************************/
 class UnGatewayPlayer extends MessagingSpectator;
 
 var UnGatewayClient client;
+
+var localized string msgGameEnded;
 
 function Create(UnGatewayClient clnt)
 {
@@ -22,4 +24,35 @@ function InitPlayerReplicationInfo()
 {
 	Super.InitPlayerReplicationInfo();
 	PlayerReplicationInfo.PlayerName = "UnGatewayPlayer";
+}
+
+function GameHasEnded()
+{
+	client.output(msgGameEnded);
+}
+
+event ClientMessage( coerce string S, optional Name Type )
+{
+	SendFormattedMessage(None, S, Type);
+}
+
+function TeamMessage( PlayerReplicationInfo PRI, coerce string S, name Type)
+{
+	SendFormattedMessage(PRI, S, Type);
+}
+
+/** format the message and send it to the client */
+function SendFormattedMessage(PlayerReplicationInfo PRI, coerce string S, optional name Type)
+{
+	local string pname;
+	if (PRI != none)
+	{
+		pname = PRI.PlayerName;
+	}
+	client.outputChat(pname, S, Type);
+}
+
+defaultproperties
+{
+	msgGameEnded="The game has ended, you will be disconnected within a few seconds"
 }

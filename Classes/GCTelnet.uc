@@ -10,7 +10,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCTelnet.uc,v 1.20 2004/04/15 10:46:21 elmuerte Exp $	-->
+	<!-- $Id: GCTelnet.uc,v 1.21 2004/04/15 14:41:32 elmuerte Exp $	-->
 *******************************************************************************/
 class GCTelnet extends UnGatewayClient;
 
@@ -123,15 +123,27 @@ var(Config) config bool bSaveHistory;
 /** the command history class to use */
 var(Config) config string CommandHistoryClass;
 
-/** cursor position: x,y, init-x */
-var protected int cursorpos[3];
+/**
+	chat mode, CM_Disabled by default. CM_Full, the messages will be printed in
+	the terminal and everything typed will be a message. CM_Partial, top few
+	lines are reserved for chatting input is only a messages when prefixed
+ */
+var(Config) config enum EChatMode
+{
+	CM_Disabled,
+	CM_Full,
+	CM_Partial,
+} ChatMode;
+
+/** cursor position: x,y, init-x, init-y */
+var protected int cursorpos[4];
 /**
 	busy processing special sequences, this is not completely supported
 */
 var bool bProcEsc, bProcTelnet;
 
 /** command history (reversed order) */
-var array<string> CommandHistory;
+var array<string> CommandHistory, tmpCmdHist;
 /** max items in the history */
 const MAX_HISTORY = 25;
 /** current index in the history */
@@ -223,6 +235,12 @@ delegate OnCursorKey(ECursorKey Key);
 /** called from defProcEscape when a meta key is used: Alt+key or Esc+key */
 delegate OnMetaKey(string key);
 
+/** called when the user presses a newline, return true to echo the newline */
+delegate bool OnNewline()
+{
+	return true;
+}
+
 event Accepted()
 {
 	Super.Accepted();
@@ -284,7 +302,11 @@ function defReceiveInput(int Count, byte B[255])
 		}
 		else if (B[i] == C_CR) // new line
 		{
-			SendLine(); // send a newline
+			if (OnNewline())
+			{
+				cursorpos[1] = min(WindowSize[1], cursorpos[1]+1);
+				SendLine(); // send a newline
+			}
 			OnReceiveLine(inbuffer);
 			inbuffer = "";
 		}
@@ -560,6 +582,7 @@ function SetCursor(int x, int y)
 /** sendtext and append newline */
 function SendLine(optional coerce string line)
 {
+	cursorpos[1] = min(WindowSize[1], cursorpos[1]+1);
 	SendText(line$Chr(C_CR)$chr(C_NL));
 }
 
@@ -776,7 +799,8 @@ function SaveHistory()
 		return;
 	}
 	hist = new(None,repl(sUsername, " ", Chr(C_ESC))) histclass;
-	hist.History = CommandHistory;
+	if (IsInState('FullChatMode')) hist.History = tmpCmdHist;
+	else hist.History = CommandHistory;
 	hist.SaveConfig();
 }
 
@@ -879,7 +903,9 @@ state login
 				IssueMessage();
 				PlayerController.SetName(sUsername);
 				if (bSaveHistory) LoadHistory();
-				GotoState('logged_in');
+
+				if (ChatMode == CM_Full) GotoState('FullChatMode');
+				else GotoState('logged_in');
 			}
 			else {
 				LoginTries++;
@@ -898,6 +924,8 @@ begin:
 	OnCursorKey=defCursorKey;
 	OnLogout=none;
 	OnTabComplete=none;
+	OnNewline=none;
+	OnMetaKey=none;
 	SendText(msgUsername);
 }
 
@@ -924,6 +952,7 @@ begin:
 	OnCursorKey=none;
 	OnLogout=none;
 	OnTabComplete=none;
+	OnMetaKey=none;
 }
 
 /** logged in state */
@@ -960,6 +989,20 @@ state logged_in
 		Close();
 	}
 
+	function procMeta(string key)
+	{
+		if (key == "c")
+		{
+			if (inbuffer == "")
+			{
+				SendLine();
+				ChatMode = CM_Full;
+				GotoState('FullChatMode');
+			}
+			else Bell();
+		}
+	}
+
 begin:
 	OnReceiveBinary=defReceiveInput;
 	OnReceiveLine=procInput;
@@ -967,6 +1010,8 @@ begin:
 	OnCursorKey=defCursorKey;
 	OnLogout=TryLogout;
 	OnTabComplete=defTabComplete;
+	OnNewline=none;
+	OnMetaKey=procMeta;
 	SendPrompt();
 }
 
@@ -1072,8 +1117,60 @@ begin:
 	OnCursorKey=PagerCursor;
 	OnLogout=none;
 	OnTabComplete=none;
+	OnMetaKey=none;
 	PagerOffset = 0;
 	PagerStatus(WindowSize[1]-2);
+}
+
+state FullChatMode
+{
+	function procInput(coerce string input)
+	{
+		if (input == "") return;
+		if (Left(input, 5) ~= "/quit")
+		{
+			ExitChatMode();
+			return;
+		}
+		AddCommandHistory(input);
+		inbuffer = ""; // pre-flush
+		Level.Game.Broadcast(PlayerController, input, 'Say');
+	}
+
+	function bool procNewline()
+	{
+		if (cursorpos[0] > cursorpos[2])
+		{
+			SendText(Chr(C_ESC)$"["$string(cursorpos[0]-cursorpos[2])$"D");
+			cursorpos[0] = cursorpos[2];
+		}
+		SendText(Chr(C_ESC)$"[K");
+		return false;
+	}
+
+	function ExitChatMode()
+	{
+		CommandHistory=tmpCmdHist;
+		SendLine();
+		GotoState('logged_in');
+	}
+
+begin:
+	OnReceiveBinary=defReceiveInput;
+	OnReceiveLine=procInput;
+	OnEscapeCode=defProcEscape;
+	OnCursorKey=defCursorKey;
+	OnLogout=ExitChatMode;
+	OnTabComplete=none;
+	OnNewline=procNewline;
+	OnMetaKey=none;
+	SendText(Chr(C_ESC)$"[44;37m");
+	output("-- You are now in chat mode, press Ctrl+D or /quit to leave chat mode --");
+	SendText(Chr(C_ESC)$"[0m");
+	tmpCmdHist=CommandHistory;
+	CommandHistory.length = 0;
+	CurHisIndex = -1;
+	SendChatPrompt();
 }
 
 state logout
@@ -1091,13 +1188,14 @@ begin:
 	send data to the client, if the pager is enabled it will automatically page
 	the data when there's more data than can fit on the screen
 */
-function output(coerce string data, optional string ident)
+function output(coerce string data, optional string ident, optional bool bDontWrapFirst)
 {
 	local array<string> tmp;
 	local int i;
 	local string tmpdata;
 
-	if ((len(ident$data) >= WindowSize[0]) && (len(ident) > 0)) // use smart wrapping with ident
+	if (!bDontWrapFirst) tmpdata = ident;
+	if (len(tmpdata$data) >= WindowSize[0]) // use smart wrapping with ident
 	{
 		if (split(data, " ", tmp) == 0)
 		{
@@ -1115,18 +1213,20 @@ function output(coerce string data, optional string ident)
 			}
 			if (tmpdata == "")
 			{
-				tmpdata = ident$tmp[i];
+				if (bDontWrapFirst && i == 0) tmpdata = tmp[i];
+				else tmpdata = ident$tmp[i];
 			}
 			else tmpdata @= tmp[i];
 		}
 		if (tmpdata != "") internalOutput(tmpdata);
 	}
-	else internalOutput(ident$data);
+	else internalOutput(tmpdata$data);
 }
 
 protected function internalOutput(coerce string data)
 {
 	if (!bEnablePager) SendLine(data);
+	else if (IsInState('FullChatMode')) SendLine(data);
 	else {
 		PagerBuffer.length = PagerBuffer.length+1;
 		PagerBuffer[PagerBuffer.length-1] = data;
@@ -1144,14 +1244,49 @@ protected function internalOutput(coerce string data)
 /**
 	send an error
 */
-function outputError(string errormsg, optional string ident)
+function outputError(string errormsg, optional string ident, optional bool bDontWrapFirst)
 {
 	SendLine(Chr(C_ESC)$"[1;31m"$errormsg$Chr(C_ESC)$"[0m");
 }
 
+function outputChat(coerce string pname, coerce string message, optional name Type)
+{
+	if (ChatMode == CM_Disabled) return;
+	if (ChatMode == CM_Full)
+	{
+		SetCursor(1, cursorpos[1]);
+		Output("<"$pname$">"@message, "    ", true);
+		SendChatPrompt(); // position is restored by the chat prompt
+	}
+	else if (ChatMode == CM_Partial)
+	{
+		// TODO:
+	}
+}
+
+/**
+	send the special chat prompt, is bNoBuffer is added the current input buffer
+	is not included
+*/
+function SendChatPrompt(optional bool bNoBuffer)
+{
+	local string line;
+	SetCursor(1, WindowSize[1]);
+	line = "["$sUsername$"]";
+	SendText(Chr(C_ESC)$"[44;37m"$line$Chr(C_ESC)$"[0m ");
+	cursorpos[0] = Len(line)+1; // the additional space
+	cursorpos[3] = WindowSize[1]; // set to last line
+	cursorpos[2] = cursorpos[0]; // set init-x
+	if (!bNoBuffer)
+	{
+		SendText(inbuffer);
+		cursorpos[2] += Len(inbuffer);
+	}
+}
+
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.20 2004/04/15 10:46:21 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.21 2004/04/15 14:41:32 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0
@@ -1160,6 +1295,7 @@ defaultproperties
 	bEnablePager=true
 	bSaveHistory=false
 	CommandHistoryClass="UnGateway.TelnetCommandHistory"
+	ChatMode=CM_Disabled
 
 	msgUsername="Username: "
 	msgPassword="Password: "
