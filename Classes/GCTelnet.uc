@@ -10,7 +10,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCTelnet.uc,v 1.12 2004/04/06 19:12:00 elmuerte Exp $	-->
+	<!-- $Id: GCTelnet.uc,v 1.13 2004/04/06 20:51:01 elmuerte Exp $	-->
 *******************************************************************************/
 class GCTelnet extends UnGatewayClient;
 
@@ -616,10 +616,11 @@ function Bell()
 	SendText(Chr(7));
 }
 
-/** clear and reset the current line */
+/** clear and reset the current (actually last) line */
 function ClearResetLine()
 {
-	SendText(Chr(C_ESC)$"[1G"$Chr(C_ESC)$"[2K");
+	//SendText(Chr(C_ESC)$"[1G"$Chr(C_ESC)$"[2K"); // this doesn't work with the Windows Telnet Client
+	SendText(Chr(C_ESC)$"[2K"$Chr(C_ESC)$"["$WindowSize[1]$";1H");
 }
 
 /**
@@ -857,13 +858,15 @@ state logged_in
 			PagerBuffer.length = 0;
 		}
 		if (!Interface.Gateway.ExecCommand(Self, cmd)) outputError(repl(msgUnknownCommand, "%command%", cmd[0]));
-		if (!IsInState('paged')) SendPrompt();
+		if (!IsInState('paged') && !IsInState('logout')) SendPrompt();
 	}
 
 	function TryLogout()
 	{
 		if (!interface.gateway.CanClose(Self)) return;
+		GotoState('logout');
 		SendLine();
+		SendLine("Goodbye!");
 		Close();
 	}
 
@@ -983,6 +986,17 @@ begin:
 	PagerStatus(WindowSize[1]-2);
 }
 
+state logout
+{
+begin:
+	OnReceiveBinary=none;
+	OnReceiveLine=none;
+	OnEscapeCode=none;
+	OnCursorKey=none;
+	OnLogout=none;
+	OnTabComplete=none;
+}
+
 /**
 	send data to the client, if the pager is enabled it will automatically page
 	the data when there's more data than can fit on the screen
@@ -1014,7 +1028,7 @@ function outputError(string errormsg)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.12 2004/04/06 19:12:00 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.13 2004/04/06 20:51:01 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0
