@@ -1,7 +1,7 @@
 /**
 	GAppDebug
 	Debug commands, should not be used in
-	$Id: GAppDebug.uc,v 1.5 2004/01/02 11:30:55 elmuerte Exp $
+	$Id: GAppDebug.uc,v 1.6 2004/01/02 14:22:40 elmuerte Exp $
 */
 class GAppDebug extends UnGatewayApplication;
 
@@ -15,6 +15,7 @@ function bool ExecCmd(UnGatewayClient client, array<string> cmd)
 		case "echo": execEcho(client, cmd); return true;
 		case "help": execHelp(client, cmd); return true;
 		case "list": execList(client, cmd); return true;
+		case "test": execTest(client, cmd); return true;
 	}
 	return false;
 }
@@ -97,10 +98,23 @@ function execList(UnGatewayClient client, array<string> cmd)
 	else client.outputError("Usage: list <cmd|app|if|client>");
 }
 
+function execTest(UnGatewayClient client, array<string> cmd)
+{
+	local int i;
+	if (cmd[0] == "pager")
+	{
+		for (i = 0; i < int(cmd[1]); i++)
+		{
+			client.output("Pager test - line #"$i);
+		}
+	}
+}
+
 defaultproperties
 {
-	innerCVSversion="$Id: GAppDebug.uc,v 1.5 2004/01/02 11:30:55 elmuerte Exp $"
+	innerCVSversion="$Id: GAppDebug.uc,v 1.6 2004/01/02 14:22:40 elmuerte Exp $"
 	Commands[0]=(Name="echo",Help="Returns it's first argument||Usage: echo \"some text\"")
 	Commands[1]=(Name="help",Help="Show help about commands|This should be a built-in command||Usage: help <command>")
 	Commands[2]=(Name="list",Help="Show various lists.|cmd	show registered commands|app	show loaded applications|if	show loaded interfaces|client	show connected clients")
+	Commands[3]=(Name="test",Help="Various tests")
 }

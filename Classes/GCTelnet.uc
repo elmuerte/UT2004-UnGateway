@@ -3,7 +3,7 @@
 	Telnet client, spawned from GITelnetd
 	Note: windows telnet client should use ANSI not VT100
 	RFC: 318, 513, 764, 854, 855, 857, 858, 859, 884, 930, 1073, 1091, 1116, 1572
-	$Id: GCTelnet.uc,v 1.6 2004/01/02 11:30:55 elmuerte Exp $
+	$Id: GCTelnet.uc,v 1.7 2004/01/02 14:22:40 elmuerte Exp $
 */
 class GCTelnet extends UnGatewayClient;
 
@@ -98,6 +98,11 @@ var config float fDelayWrongPassword;
 	NEVER USE THIS, change the gateway's authentication class instead
 */
 var config bool bDisableAuth;
+/**
+	when set to true the internal pager will be used if there's more output
+	than there are lines available on the screen
+*/
+var config bool bEnablePager;
 
 /** cursor position: x,y, init-x */
 var protected int cursorpos[3];
@@ -119,9 +124,18 @@ var protected string LastHistoryInput;
 var protected string ClipBoard;
 /** used to detect double tabs for tab completion, second tab will display a list */
 var protected bool bTabComplRepeat;
+/** window size: x,y */
+var protected int WindowSize[2];
+/** terminal type string send */
+var protected string TerminalType;
+/** buffer used by the internal pager */
+var protected array<string> PagerBuffer;
+/** current line count for the pager */
+var protected int PagerLineCount;
 
 // localization
-var localized string msgUsername, msgPassword, msgLoginFailed, msgTooManuLogins, msgUnknownCommand;
+var localized string msgUsername, msgPassword, msgLoginFailed, msgTooManuLogins,
+						msgUnknownCommand, msgPagerMore;
 
 /** called from defReceiveInput to handle escape codes */
 delegate int OnEscapeCode(int pos, int Count, byte B[255])
@@ -140,10 +154,18 @@ event Accepted()
 	SendText(Chr(T_IAC)$Chr(T_WILL)$Chr(O_SGOAHEAD));
 	// send window size and changes
 	SendText(Chr(T_IAC)$Chr(T_DO)$Chr(O_NAWS));
+	// send terminal type
+	SendText(Chr(T_IAC)$Chr(T_DO)$Chr(O_TERMINAL));
+	// request terminal type
+	SendText(Chr(T_IAC)$Chr(T_SB)$Chr(O_TERMINAL)$Chr(1)$Chr(T_IAC)$Chr(T_SE));
+
+	WindowSize[0] = 80;
+	WindowSize[1] = 25;
 
 	if (bDisableAuth)
 	{
 		sUsername = "anonymous";
+		IssueMessage();
 		GotoState('logged_in');
 	}
 	else {
@@ -336,31 +358,36 @@ function defTabComplete()
 					completion[completion.Length-1] = Interface.gateway.CmdLookupTable[i].Command;
 				}
 			}
-			if (completion.Length == 1)
-			{
-				tmp = Mid(completion[0], sz)$" ";
-				inbuffer $= tmp;
-				SendText(tmp);
-				cursorpos[0] += Len(tmp);
-			}
-			else if (!bTabComplRepeat)
-			{
-				bTabComplRepeat = true;
-				Bell();
-			}
-			else {
-				SendLine("");
-				for (i = 0; i < completion.Length; i++)
-				{
-					SendLine(completion[i]);
-				}
-				SendPrompt();
-				SendText(inbuffer);
-				cursorpos[0] += Len(inbuffer);
-			}
 		}
 		else {
-			Interface.gateway.Logf("Tab completion for"@cmd.length@"items", Name, Interface.gateway.LOG_DEBUG);
+			Interface.gateway.Logf("Tab completion for"@cmd[0]@":"@cmd.length@"items", Name, Interface.gateway.LOG_DEBUG);
+		}
+
+		if (completion.length == 0)
+		{
+			Bell();
+		}
+		else if (completion.Length == 1)
+		{
+			tmp = Mid(completion[0], sz)$" ";
+			inbuffer $= tmp;
+			SendText(tmp);
+			cursorpos[0] += Len(tmp);
+		}
+		else if (!bTabComplRepeat)
+		{
+			bTabComplRepeat = true;
+			Bell();
+		}
+		else {
+			SendLine("");
+			for (i = 0; i < completion.Length; i++)
+			{
+				SendLine(completion[i]);
+			}
+			SendPrompt();
+			SendText(inbuffer);
+			cursorpos[0] += Len(inbuffer);
 		}
 	}
 }
@@ -400,21 +427,56 @@ function int ProcTelnetProtocol( int pos, int Count, byte B[255] )
 						length += 2;
 						break;
 		case T_SB:		Interface.gateway.Logf("SB", Name, Interface.gateway.LOG_DEBUG);
+						length++;
 						pos++;
-						length++;
-						while (B[pos] != T_SE)
-						{
-							Interface.gateway.Logf("SB: "@B[pos], Name, Interface.gateway.LOG_DEBUG);
-							length++;
-							pos++;
-							if (pos > Count) return length;
-						}
-						length++;
+						length += ProcTelnetSubNegotiation(pos, count, b);
 						break;
 		case T_NOP:		length++;
 						break;
 	}
 	bProcTelnet = false;
+	return length;
+}
+
+/** */
+function int ProcTelnetSubNegotiation( int pos, int Count, byte B[255] )
+{
+	local int length;
+
+	length = 0;
+	switch (B[pos])
+	{
+		case O_NAWS:		// window size
+					windowsize[0] = B[++pos]*256+B[++pos];
+					windowsize[1] = B[++pos]*256+B[++pos];
+					pos += 2;
+					length = 6;  // last is T_IAC
+					Interface.gateway.Logf("Window size ="@windowsize[0]@"x"@windowsize[1], Name, Interface.gateway.LOG_DEBUG);
+					break;
+		case O_TERMINAL:	// terminal type
+					pos += 2; // O_.. + 0x00
+					length += 2;
+					TerminalType = "";
+					while (B[pos] != T_IAC)
+					{
+						TerminalType $= chr(B[pos]);
+						pos++;
+						length++;
+					}
+					pos++;
+					length++;
+					Interface.gateway.Logf("Terminal type ="@TerminalType, Name, Interface.gateway.LOG_DEBUG);
+					break;
+
+	}
+	while (B[pos] != T_SE)
+	{
+		Interface.gateway.Logf("SB: "@B[pos], Name, Interface.gateway.LOG_DEBUG);
+		length++;
+		pos++;
+		if (pos > Count) return length;
+	}
+	length++;
 	return length;
 }
 
@@ -436,6 +498,11 @@ function SendPrompt()
 function Bell()
 {
 	SendText(Chr(7));
+}
+
+function ClearResetLine()
+{
+	SendText(Chr(C_ESC)$"[1G"$Chr(C_ESC)$"[2K");
 }
 
 /** add the last command to the command history */
@@ -549,6 +616,7 @@ state login
 			bEcho = true;
 			if (Interface.gateway.login(self, sUsername, sPassword, interface.ident))
 			{
+				IssueMessage();
 				GotoState('logged_in');
 			}
 			else {
@@ -606,8 +674,9 @@ state logged_in
 			return;
 		}
 		AddCommandHistory(input);
+		PagerLineCount = 0;
 		if (!Interface.Gateway.ExecCommand(Self, cmd)) outputError(repl(msgUnknownCommand, "%command%", cmd[0]));
-		SendPrompt(); // TODO: ommit prompt ?
+		if (!IsInState('paged')) SendPrompt();
 	}
 
 	function TryLogout()
@@ -623,13 +692,80 @@ begin:
 	OnEscapeCode=defProcEscape;
 	OnLogout=TryLogout;
 	OnTabComplete=defTabComplete;
-	IssueMessage();
 	SendPrompt();
+}
+
+/**
+	internal pager
+*/
+state paged
+{
+	function PagerReceiveInput(int Count, byte B[255])
+	{
+		local int i;
+		for (i = 0; i < count; i++)
+		{
+			switch (B[i])
+			{
+				case 113:
+				case 81:	ClearResetLine();
+							PagerBuffer.length = 0;
+							GotoState('logged_in');
+							break;
+				case 13:
+				case 32:	PagerFlush();
+							break;
+			}
+		}
+	}
+
+	function PagerFlush()
+	{
+		local int i;
+		PagerLineCount = 0;
+		ClearResetLine();
+		for (i = 0; i < PagerBuffer.Length; i++)
+		{
+			SendLine(PagerBuffer[i]);
+			PagerLineCount++;
+			if (PagerLineCount >= (WindowSize[1]-1))
+			{
+				SendText(msgPagerMore);
+				break;
+			}
+		}
+		PagerBuffer.Remove(0, PagerLineCount);
+		if (PagerBuffer.Length == 0)
+		{
+			ClearResetLine();
+			GotoState('logged_in');
+		}
+	}
+
+begin:
+	OnReceiveBinary=PagerReceiveInput;
+	OnReceiveLine=none;
+	OnEscapeCode=none;
+	OnLogout=none;
+	OnTabComplete=none;
+	SendText(msgPagerMore);
 }
 
 function output(string data)
 {
-	SendLine(data);
+	if (!bEnablePager) SendLine(data);
+	else {
+		if (PagerLineCount < (WindowSize[1]-1))
+		{
+			SendLine(data);
+			PagerLineCount++;
+		}
+		else {
+			if (!IsInState('paged')) GotoState('paged');
+			PagerBuffer.length = PagerBuffer.length+1;
+			PagerBuffer[PagerBuffer.length-1] = data;
+		}
+	}
 }
 
 function outputError(string errormsg)
@@ -639,16 +775,18 @@ function outputError(string errormsg)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.6 2004/01/02 11:30:55 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.7 2004/01/02 14:22:40 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0
 	fDelayWrongPassword=5.0
 	bDisableAuth=false
+	bEnablePager=true
 
 	msgUsername="Username: "
 	msgPassword="Password: "
 	msgLoginFailed="Login failed!"
 	msgTooManuLogins="Too many login tries, goodbye!"
 	msgUnknownCommand="Unknown command: %command%"
+	msgPagerMore="--- more ---";
 }
