@@ -1,3 +1,6 @@
+Monday, May 17, 2004
+- Fixed saving of policies
+
 Saturday, May 08, 2004
 - IRC: /oper implementation
 - IRC: admin channel and game channel have been implemented as they should
