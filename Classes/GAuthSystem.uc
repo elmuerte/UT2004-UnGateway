@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GAuthSystem.uc,v 1.7 2004/04/13 16:04:39 elmuerte Exp $ -->
+	<!-- $Id: GAuthSystem.uc,v 1.8 2004/05/01 15:56:11 elmuerte Exp $ -->
 *******************************************************************************/
 class GAuthSystem extends UnGatewayAuth;
 
@@ -15,7 +15,7 @@ class GAuthSystem extends UnGatewayAuth;
 function bool Login(UnGatewayClient client, string username, string password, optional string extra)
 {
 	gateway.Logf("[Login] USER:"@username@"PASS: ******** EXTRA: ignored", Name, gateway.LOG_INFO);
-	if (Level.Game.AccessControl.AdminLogin(client.PlayerController, password, Password))
+	if (Level.Game.AccessControl.AdminLogin(client.PlayerController, username, Password))
 	{
 		gateway.Logf("[Login] succesfull", Name, gateway.LOG_INFO);
 		return true;
@@ -47,5 +47,5 @@ function bool HasPermission(UnGatewayClient client, optional int seclevel, optio
 
 defaultproperties
 {
-	CVSversion="$Id: GAuthSystem.uc,v 1.7 2004/04/13 16:04:39 elmuerte Exp $"
+	CVSversion="$Id: GAuthSystem.uc,v 1.8 2004/05/01 15:56:11 elmuerte Exp $"
 }
