@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UnGatewayApplication.uc,v 1.5 2004/04/06 19:12:00 elmuerte Exp $ -->
+	<!-- $Id: UnGatewayApplication.uc,v 1.6 2004/04/07 16:37:39 elmuerte Exp $ -->
 *******************************************************************************/
 class UnGatewayApplication extends Object within GatewayDaemon abstract;
 
@@ -17,7 +17,7 @@ var const string innerCVSversion;
 /** commands this application accepts */
 struct CommandInfo
 {
-	var localized string Name;
+	var string Name;
 	var localized string Help;
 };
 /** commands and help */
@@ -41,8 +41,6 @@ function Create()
 /**
 	Execute this command, called from the gateway.
 	Should be overwritten by subclasses.
-	Because the command name can be localized you should check used the locatized
-	name instead of hardcoding the name
 */
 function bool ExecCmd(UnGatewayClient client, array<string> cmd)
 {
@@ -68,5 +66,5 @@ function string GetHelpFor(string Command)
 
 defaultproperties
 {
-	innerCVSversion="$Id: UnGatewayApplication.uc,v 1.5 2004/04/06 19:12:00 elmuerte Exp $"
+	innerCVSversion="$Id: UnGatewayApplication.uc,v 1.6 2004/04/07 16:37:39 elmuerte Exp $"
 }
