@@ -1,7 +1,7 @@
 /**
 	UnGatewayClient
 	client for TCP based services linked in the Gateway system
-	$Id: UnGatewayClient.uc,v 1.2 2003/09/04 11:26:41 elmuerte Exp $
+	$Id: UnGatewayClient.uc,v 1.3 2003/09/08 14:05:53 elmuerte Exp $
 */
 class UnGatewayClient extends TCPLink abstract config;
 
@@ -11,7 +11,8 @@ var UnGatewayPlayer PlayerController;
 
 var protected int LoginTries;
 var protected string inbuffer;
-var protected string sUsername, sPassword;
+var string sUsername;
+var protected string sPassword;
 var string ClientAddress;
 
 /** called when binary input is received */
