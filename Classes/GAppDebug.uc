@@ -8,7 +8,7 @@
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
 
-	<!-- $Id: GAppDebug.uc,v 1.19 2004/04/16 10:38:22 elmuerte Exp $ -->
+	<!-- $Id: GAppDebug.uc,v 1.20 2004/04/21 15:38:06 elmuerte Exp $ -->
 *******************************************************************************/
 class GAppDebug extends UnGatewayApplication;
 
@@ -81,33 +81,47 @@ function execDump(UnGatewayClient client, array<string> cmd)
 	local int i,j;
 	local FileLog f;
 	local array<string> hlp;
+	local array<GatewayDaemon.CommandReference> cmdtable;
+
+	// create sorted list
+	for (i = 0; i < CmdLookupTable.length; i++)
+	{
+		for (j = 0; j < cmdtable.length; j++)
+		{
+			if (Caps(cmdtable[j].Command) > Caps(CmdLookupTable[i].Command)) break;
+		}
+		cmdtable.insert(j, 1);
+		cmdtable[j] = CmdLookupTable[i];
+	}
 
 	f = Spawn(class'FileLog');
-	f.OpenLog("UnGateway-help", "txt", true);
-	for (i = 0; i < CmdLookupTable.Length; i++)
+	f.OpenLog("UnGateway-help", "html", true);
+	for (i = 0; i < cmdtable.Length; i++)
 	{
-		f.Logf("Command:    "@CmdLookupTable[i].Command);
-		f.Logf("Application:"@CmdLookupTable[i].App.Class);
-		split(CmdLookupTable[i].App.GetHelpFor(CmdLookupTable[i].Command), class'GAppDefault'.default.HelpNewline, hlp);
+		f.Logf("<h1 class=\"ugh_cmd\">"$cmdtable[i].Command$"</h1>");
+		f.Logf("<div class=\"ugh_app\">Application:"@cmdtable[i].App.Class$"</div>");
+		split(cmdtable[i].App.GetHelpFor(cmdtable[i].Command), class'GAppDefault'.default.HelpNewline, hlp);
+		f.Logf("<div class=\"ugh_help\">");
 		for (j = 0; j < hlp.length; j++)
 		{
-			f.Logf("Help:       "@hlp[j]);
+			f.Logf(repl(repl(hlp[j], "<", "&lt;"), ">", "&gt;")$"<br />");
 		}
-		f.Logf("");
+		f.Logf("</div>");
 	}
 	f.Destroy();
+	client.output("Command information dumped to UnGateway-help.html");
 }
 
 defaultproperties
 {
-	innerCVSversion="$Id: GAppDebug.uc,v 1.19 2004/04/16 10:38:22 elmuerte Exp $"
+	innerCVSversion="$Id: GAppDebug.uc,v 1.20 2004/04/21 15:38:06 elmuerte Exp $"
 	Commands[0]=(Name="echo")
-	Commands[1]=(Name="test")
+	Commands[1]=(Name="test",Level=255)
 	Commands[2]=(Name="console",Permission="Xc")
 	Commands[3]=(Name="dump",Level=255)
 
-	CommandHelp[0]="Returns it's first argumentÿUsage: echo \"some text\""
-	CommandHelp[1]="Various tests"
-	CommandHelp[2]="Execute a console command"
-	CommandHelp[3]="Dump all available commands and help to the file UnGateway-help.txt"
+	CommandHelp[0]="A simple echo command.ÿIt will echo each argument on a single lineÿUsage: echo \"some text\""
+	CommandHelp[1]="Various tests for debugging."
+	CommandHelp[2]="Execute a console command.ÿThe console command will be executed as the system, not as the logged in user."
+	CommandHelp[3]="Dump all available commands and help to the file UnGateway-help.html"
 }

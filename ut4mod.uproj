@@ -34,12 +34,14 @@ versionURL=http://unreal.epicgames.com/
 developerURL=http://www.epicgames.com/
 [Product]
 product=UnGateway
-version=100Beta
+version=100
 developer=Michiel "El Muerte" Hendriks
 productURL=http://ungateway.elmuerte.com
 versionURL=http://ungateway.elmuerte.com
 developerURL=http://ut2004.elmuerte.com/About
+readme=Help\UnGateway-help.txt
 title=UnGateway Setup
 cleanup=True
 license=UnGateway LICENSE.int
+logo=Help\UnGateway.bmp
 archive=UnGateway.ut2mod
