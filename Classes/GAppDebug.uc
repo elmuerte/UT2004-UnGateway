@@ -8,7 +8,7 @@
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
 
-	<!-- $Id: GAppDebug.uc,v 1.14 2004/04/08 19:43:30 elmuerte Exp $ -->
+	<!-- $Id: GAppDebug.uc,v 1.15 2004/04/12 13:38:15 elmuerte Exp $ -->
 *******************************************************************************/
 class GAppDebug extends UnGatewayApplication;
 
@@ -56,7 +56,7 @@ function execTest(UnGatewayClient client, array<string> cmd)
 function execConsole(UnGatewayClient client, array<string> cmd)
 {
 	local string res;
-	res = Level.ConsoleCommand(class'wArray'.static.Join(cmd, " "));
+	res = Level.ConsoleCommand(Join(cmd, " ", "\""));
 	if (res != "")
 	{
 		client.output(res);
@@ -66,7 +66,7 @@ function execConsole(UnGatewayClient client, array<string> cmd)
 
 defaultproperties
 {
-	innerCVSversion="$Id: GAppDebug.uc,v 1.14 2004/04/08 19:43:30 elmuerte Exp $"
+	innerCVSversion="$Id: GAppDebug.uc,v 1.15 2004/04/12 13:38:15 elmuerte Exp $"
 	Commands[0]=(Name="echo",Help="Returns it's first argumentÿUsage: echo \"some text\"")
 	Commands[1]=(Name="test",Help="Various tests")
 	Commands[2]=(Name="console",Help="Execute a console command")

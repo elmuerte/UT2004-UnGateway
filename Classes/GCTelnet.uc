@@ -10,7 +10,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCTelnet.uc,v 1.16 2004/04/08 19:43:30 elmuerte Exp $	-->
+	<!-- $Id: GCTelnet.uc,v 1.17 2004/04/12 13:38:15 elmuerte Exp $	-->
 *******************************************************************************/
 class GCTelnet extends UnGatewayClient;
 
@@ -504,20 +504,31 @@ function defTabComplete()
 			SendText(tmp);
 			cursorpos[0] += Len(tmp);
 		}
-		else if (!bTabComplRepeat)
-		{
-			bTabComplRepeat = true;
-			Bell();
-		}
 		else {
-			SendLine("");
-			for (i = 0; i < completion.Length; i++)
+			tmp = Mid(class'wArray'.static.GetCommonBegin(completion), sz);
+			if (tmp != "")
 			{
-				SendLine(completion[i]);
+				if (midcompl) tmp @= Mid(inbuffer, sz);
+				inbuffer = Left(inbuffer, sz)$tmp;
+				SendText(tmp);
+				cursorpos[0] += Len(tmp);
+				Bell();
 			}
-			SendPrompt();
-			SendText(inbuffer);
-			cursorpos[0] += Len(inbuffer);
+			else if (!bTabComplRepeat)
+			{
+				bTabComplRepeat = true;
+				Bell();
+			}
+			else {
+				SendLine("");
+				for (i = 0; i < completion.Length; i++)
+				{
+					SendLine(completion[i]);
+				}
+				SendPrompt();
+				SendText(inbuffer);
+				cursorpos[0] += Len(inbuffer);
+			}
 		}
 	}
 }
@@ -1043,7 +1054,7 @@ function outputError(string errormsg)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.16 2004/04/08 19:43:30 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.17 2004/04/12 13:38:15 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0

@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UnGatewayApplication.uc,v 1.7 2004/04/07 21:16:48 elmuerte Exp $ -->
+	<!-- $Id: UnGatewayApplication.uc,v 1.8 2004/04/12 13:38:15 elmuerte Exp $ -->
 *******************************************************************************/
 class UnGatewayApplication extends Object within GatewayDaemon abstract;
 
@@ -112,7 +112,29 @@ function bool intval(string in, out int val)
 	return false;
 }
 
+/** join a array of string */
+function string Join(array<string> ar, optional string delim, optional string quotechar, optional bool bIgnoreEmpty)
+{
+	local string result;
+	local int i;
+	for (i = 0; i < ar.length; i++)
+	{
+		if (bIgnoreEmpty && ar[i] == "") continue;
+		if (result != "") result = result$delim;
+		if ((InStr(ar[i], delim) > -1) && (delim != "")) ar[i] = quotechar$ar[i]$quotechar;
+		result = result$ar[i];
+	}
+	return result;
+}
+
+/** quote bug fix */
+static function string quotefix(string in, optional bool bUnfix)
+{
+	if (bUnfix) return repl(in, "\\\"", "\"");
+	return repl(in, "\"", "\\\"");
+}
+
 defaultproperties
 {
-	innerCVSversion="$Id: UnGatewayApplication.uc,v 1.7 2004/04/07 21:16:48 elmuerte Exp $"
+	innerCVSversion="$Id: UnGatewayApplication.uc,v 1.8 2004/04/12 13:38:15 elmuerte Exp $"
 }
