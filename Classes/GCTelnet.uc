@@ -10,7 +10,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCTelnet.uc,v 1.18 2004/04/13 16:04:39 elmuerte Exp $	-->
+	<!-- $Id: GCTelnet.uc,v 1.19 2004/04/14 13:39:18 elmuerte Exp $	-->
 *******************************************************************************/
 class GCTelnet extends UnGatewayClient;
 
@@ -1039,7 +1039,40 @@ begin:
 	send data to the client, if the pager is enabled it will automatically page
 	the data when there's more data than can fit on the screen
 */
-function output(coerce string data)
+function output(coerce string data, optional string ident)
+{
+	local array<string> tmp;
+	local int i;
+	local string tmpdata;
+
+	if ((len(ident$data) >= WindowSize[0]) && (len(ident) > 0)) // use smart wrapping with ident
+	{
+		if (split(data, " ", tmp) == 0)
+		{
+			// couldn't split
+			internalOutput(ident$data);
+			return;
+		}
+		tmpdata = "";
+		for (i = 0; i < tmp.length; i++)
+		{
+			if (len(tmpdata@tmp[i]) >= WindowSize[0])
+			{
+				internalOutput(tmpdata);
+				tmpdata = "";
+			}
+			if (tmpdata == "")
+			{
+				tmpdata = ident$tmp[i];
+			}
+			else tmpdata @= tmp[i];
+		}
+		if (tmpdata != "") internalOutput(tmpdata);
+	}
+	else internalOutput(ident$data);
+}
+
+protected function internalOutput(coerce string data)
 {
 	if (!bEnablePager) SendLine(data);
 	else {
@@ -1059,14 +1092,14 @@ function output(coerce string data)
 /**
 	send an error
 */
-function outputError(string errormsg)
+function outputError(string errormsg, optional string ident)
 {
 	SendLine(Chr(C_ESC)$"[1;31m"$errormsg$Chr(C_ESC)$"[0m");
 }
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.18 2004/04/13 16:04:39 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.19 2004/04/14 13:39:18 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0

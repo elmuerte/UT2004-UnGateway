@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GatewayDaemon.uc,v 1.8 2004/04/13 16:04:39 elmuerte Exp $ -->
+	<!-- $Id: GatewayDaemon.uc,v 1.9 2004/04/14 13:39:18 elmuerte Exp $ -->
 *******************************************************************************/
 class GatewayDaemon extends Info config;
 
@@ -233,8 +233,8 @@ defaultproperties
 	LOG_EVENT=8
 	LOG_DEBUG=128
 
-	AuthClass="UnGateway.GAuthSystem"
 	Ident="UnGateway/100"
-	CVSversion="$Id: GatewayDaemon.uc,v 1.8 2004/04/13 16:04:39 elmuerte Exp $"
+	CVSversion="$Id: GatewayDaemon.uc,v 1.9 2004/04/14 13:39:18 elmuerte Exp $"
+	AuthClass="UnGateway.GAuthSystem"
 	msgUnauthorized="You are not authorized to use this command"
 }

@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GAppDefault.uc,v 1.3 2004/04/13 16:04:39 elmuerte Exp $ -->
+	<!-- $Id: GAppDefault.uc,v 1.4 2004/04/14 13:39:18 elmuerte Exp $ -->
 *******************************************************************************/
 class GAppDefault extends UnGatewayApplication;
 
@@ -104,8 +104,8 @@ function execList(UnGatewayClient client, array<string> cmd)
 		{
 			if (i > 0) client.output("");
 			client.output(Applications[i].Name);
-			client.output("    "$Applications[i].innerCVSversion);
-			client.output("    "$msgLCommands$":"@Applications[i].Commands.length);
+			client.output(Applications[i].innerCVSversion, "    ");
+			client.output(msgLCommands$":"@Applications[i].Commands.length, "    ");
 		}
 	}
 	else if (cmd[0] ~= "if")
@@ -114,9 +114,9 @@ function execList(UnGatewayClient client, array<string> cmd)
 		{
 			if (i > 0) client.output("");
 			client.output(Interfaces[i].Ident@Interfaces[i].Name);
-			client.output("    "$Interfaces[i].CVSversion);
-			client.output("    "$msgLPort$":"@Interfaces[i].iListenPort);
-			client.output("    "$msgLClients$":"@Interfaces[i].clientCount);
+			client.output(Interfaces[i].CVSversion, "    ");
+			client.output(msgLPort$":"@Interfaces[i].iListenPort, "    ");
+			client.output(msgLClients$":"@Interfaces[i].clientCount, "    ");
 		}
 	}
 	else if (cmd[0] ~= "client")
@@ -125,9 +125,9 @@ function execList(UnGatewayClient client, array<string> cmd)
 		{
 			if (i > 0) client.output("");
 			client.output(uc.Name);
-			client.output("    "$uc.CVSversion);
-			client.output("    "$msgLUsername$":"@uc.sUsername);
-			client.output("    "$msgLAddress$":"@uc.ClientAddress);
+			client.output(uc.CVSversion, "    ");
+			client.output(msgLUsername$":"@uc.sUsername, "    ");
+			client.output(msgLAddress$":"@uc.ClientAddress, "    ");
 		}
 	}
 	else client.outputError(msgListUsage);
@@ -135,7 +135,7 @@ function execList(UnGatewayClient client, array<string> cmd)
 
 defaultproperties
 {
-	innerCVSversion="$Id: GAppDefault.uc,v 1.3 2004/04/13 16:04:39 elmuerte Exp $"
+	innerCVSversion="$Id: GAppDefault.uc,v 1.4 2004/04/14 13:39:18 elmuerte Exp $"
 	HelpNewline="ÿ"
 	Commands[0]=(Name="help",Help="Show help about commandsÿUsage: help <command>")
 	Commands[1]=(Name="list",Help="Show various lists.\ncmd	show registered commandsÿapp	show loaded applicationsÿif	show loaded interfacesÿclient	show connected clients")

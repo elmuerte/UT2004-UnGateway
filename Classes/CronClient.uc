@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: CronClient.uc,v 1.2 2004/04/12 13:38:15 elmuerte Exp $ -->
+	<!-- $Id: CronClient.uc,v 1.3 2004/04/14 13:39:18 elmuerte Exp $ -->
 *******************************************************************************/
 class CronClient extends UnGatewayClient config;
 
@@ -21,18 +21,18 @@ var() config string LogFilename;
 /** external log file */
 var protected FileLog flog;
 
-function output(coerce string data)
+function output(coerce string data, optional string ident)
 {
 	if (!bSilent)
 	{
-		if (bExternalLog) logf("Cron Output:"@data);
+		if (bExternalLog) logf("Cron Output:"@ident$data);
 		else log(data, 'cron output');
 	}
 }
 
-function outputError(string errormsg)
+function outputError(string errormsg, optional string ident)
 {
-	if (bExternalLog) logf("Cron Error:"@errormsg);
+	if (bExternalLog) logf("Cron Error:"@ident$errormsg);
 	else log(errormsg, 'cron error');
 }
 
@@ -77,7 +77,7 @@ function string GetLogFilename()
 
 defaultProperties
 {
-	CVSversion="$Id: CronClient.uc,v 1.2 2004/04/12 13:38:15 elmuerte Exp $"
+	CVSversion="$Id: CronClient.uc,v 1.3 2004/04/14 13:39:18 elmuerte Exp $"
 	sUsername="Cron Daemon"
 	LogFilename="crondaemon_%P"
 }
