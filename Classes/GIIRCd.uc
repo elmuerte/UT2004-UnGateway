@@ -1,7 +1,7 @@
 /**
 	GIIRCd
 	IRC server
-	$Id: GIIRCd.uc,v 1.9 2003/09/26 08:28:41 elmuerte Exp $
+	$Id: GIIRCd.uc,v 1.10 2003/09/27 15:13:08 elmuerte Exp $
 */
 class GIIRCd extends UnGatewayInterface;
 
@@ -13,6 +13,7 @@ struct IRCUserRecord
 	var string Nick;
 	var string Userhost;
 	var string RealName;
+	var string Mode;
 	var PlayerController PC;
 	var GCIRC client;
 	var bool bDead; // for disconnected clients (also whowas)
@@ -40,6 +41,7 @@ struct LocalChannelRecord
 	var int TimeStamp;
 	var array<string> Bans;
 	var array<ChannelUserRecord> Users; // pointer to the IRCUsers list
+	var bool bDead; // for disconnected clients (also whowas)
 };
 var array<LocalChannelRecord> Channels;
 
@@ -68,7 +70,6 @@ function LostClient(UnGatewayClient client)
 	{
 		if (Clients[i] == GCIRC(client))
 		{
-			GCIRC(client).ircExecQuit(, false); // just to broadcast
 			IRCUsers[GCIRC(client).ClientID].bDead = true;
 			IRCUsers[GCIRC(client).ClientID].Client = none;
 			IRCUsers[GCIRC(client).ClientID].PC = none;
@@ -96,7 +97,7 @@ function bool CheckNickName(GCIRC client, string RequestedName)
 	}
 	for (i = 0; i < IRCUsers.length; i++)
 	{
-		if (RequestedName != IRCUsers[i].Nick)
+		if (RequestedName ~= IRCUsers[i].Nick)
 		{
 			Client.SendIRC(RequestedName@":Nickname is already in use", "433"); // ERR_NICKNAMEINUSE
 			return false;
@@ -120,15 +121,24 @@ function int GetIRCUser(GCIRC client, optional bool bDontAdd)
 	IRCUsers[IRCUsers.length-1].Nick = client.sUsername;
 	IRCUsers[IRCUsers.length-1].Userhost = client.sUserhost;
 	IRCUsers[IRCUsers.length-1].PC = client.PlayerController;
+	IRCUsers[IRCUsers.length-1].Client = client;
+	IRCUsers[IRCUsers.length-1].Mode = "i"; // always invisible
 	return IRCUsers.length-1;
 }
 
 /** return if a userhost is banned from a channel */
 function bool IsBanned(int ChannelId, string UserHost)
 {
+	local int i;
+	if (ChannelId < 0 || ChannelId >= Channels.length) return false;
+	for (i = 0; i < Channels[ChannelId].Bans.length; i++)
+	{
+		if (class'wString'.static.MaskedCompare(UserHost, Channels[ChannelId].Bans[i])) return true;
+	}
 	return false;
 }
 
+/** create a channel */
 function int CreateChannel(string ChannelName, optional string Topic, optional bool bLocal, optional bool bAdmin)
 {
 	local int i;
@@ -142,10 +152,12 @@ function int CreateChannel(string ChannelName, optional string Topic, optional b
 	Channels[Channels.length-1].Topic = Topic;
 	Channels[Channels.length-1].bLocal = bLocal;
 	Channels[Channels.length-1].bAdmin = bAdmin;
-	Channels[Channels.length-1].Limit = 9999; // TODO: set max chan size
+	Channels[Channels.length-1].Limit = 0;
+	Channels[Channels.length-1].Mode = "nt"; // TODO: hardcode
 	return Channels.length-1;
 }
 
+/** find the channel id */
 function int GetChannel(string ChannelName)
 {
 	local int i;
@@ -154,6 +166,25 @@ function int GetChannel(string ChannelName)
 		if (Channels[i].Name ~= ChannelName) return i;
 	}
 	return -1;
+}
+
+/** 
+	send this text to all clients except self
+*/
+function BroadcastMessage(coerce string message, int id, optional GCIRC origin)
+{
+	local int i;
+	local GCIRC remoteclient;
+	gateway.Logf("[BroadcastMessage] "$message, Name, gateway.LOG_DEBUG);
+	for (i = 0; i < Channels[id].Users.length; i++)
+	{
+		remoteclient = IRCUsers[Channels[id].Users[i].uid].client;
+		if (remoteclient != none && remoteclient != origin)
+		{
+			gateway.Logf("[BroadcastMessage] Receiver:"@remoteclient, Name, gateway.LOG_DEBUG);
+			remoteclient.SendText(message);
+		}
+	}
 }
 
 defaultproperties

@@ -2,7 +2,7 @@
 	GCIRC
 	IRC client, spawned from GIIRCd
 	RFC: 1459
-	$Id: GCIRC.uc,v 1.8 2003/09/26 08:28:41 elmuerte Exp $
+	$Id: GCIRC.uc,v 1.9 2003/09/27 15:13:08 elmuerte Exp $
 */
 class GCIRC extends UnGatewayClient;
 
@@ -19,16 +19,14 @@ var config int MaxChannels;
 */
 var config bool bAllowCreateChannel;
 
-struct UserChannelRecord
-{
-	var int channel; // pointer to the channel record
-	var string UserMode; // user mode
-};
 /** listening on the channels this client is in */
-var array<UserChannelRecord> Channels;
+var array<int> Channels;
 
 /** userhost string: username@hostname*/
 var string sUserhost;
+var string sRealname;
+/** the message to broadcast */
+var string QuitMessage;
 
 /** pointer to this clients entry in the IRC user list */
 var int ClientID;
@@ -37,6 +35,17 @@ event Accepted()
 {
 	Super.Accepted();
 	ClientID = -1;
+}
+
+event Closed()
+{
+	local int i;
+	Super.Closed();
+	if (QuitMessage == "") QuitMessage = "Connection reset by peer";
+	for (i = 0; i < Channels.length; i++)
+	{
+		GIIRCd(Interface).BroadcastMessage(":"$sUsername$"!"$sUserhost@"QUIT :"$QuitMessage, Channels[i], self);
+	}
 }
 
 /** send RAW irc reply */
@@ -48,6 +57,7 @@ function SendIRC(string data, coerce string code)
 		else nm = "*";
 	// :<server host> <code> <nickname> <additional data>
 	SendText(":"$interface.gateway.hostname@code@nm@data);
+	interface.gateway.Logf("[SendIRC] :"$interface.gateway.hostname@code@nm@data, Name, interface.gateway.LOG_DEBUG);
 }
 
 /** 
@@ -62,13 +72,13 @@ function bool IsIn(optional string channelname, optional int id)
 	{
 		for (i = 0; i < Channels.length; i++)
 		{
-			if (Channels[i].channel == id) return true;
+			if (Channels[i] == id) return true;
 		}
 	}
 	else {
 		for (i = 0; i < Channels.length; i++)
 		{
-			if (GIIRCd(Interface).Channels[Channels[i].channel].Name ~= channelname) return true;
+			if (GIIRCd(Interface).Channels[Channels[i]].Name ~= channelname) return true;
 		}
 	}
 	return false;
@@ -110,20 +120,24 @@ auto state Login
 											SendIRC("USER :Not enough parameters", "461"); // ERR_NEEDMOREPARAMS
 											break;
 										}
-										sUserhost = input[1]$"@"$input[2];
-										if (sPassword != "") // try to login
-										{
-											if (!interface.gateway.Login(Self, sUsername, sPassword, interface.ident@sUserhost))
-											{
-												SendIRC(":Password incorrect", "464"); // ERR_PASSWDMISMATCH
-								        Close();
-											}
-										}
-										ClientID = GIIRCd(Interface).GetIRCUser(self);
-										GIIRCd(Interface).IRCUsers[ClientID].Realname = Mid(input[3], 1); // strip :
-										GotoState('loggedin');
+										sUserhost = "~"$input[1]$"@"$input[2]; // no ident lookup
+										sRealname = Mid(line, InStr(line, ":")+1);  // strip :
 										break;
 			default:			SendIRC(input[0]@":Unknown command", "421"); // ERR_UNKNOWNCOMMAND
+		}
+		if (sUsername != "" && sUserhost != "")
+		{
+			if (sPassword != "") // try to login
+			{
+				if (!interface.gateway.Login(Self, sUsername, sPassword, interface.ident@sUserhost))
+				{
+					SendIRC(":Password incorrect", "464"); // ERR_PASSWDMISMATCH
+			    Close();
+				}
+			}
+			ClientID = GIIRCd(Interface).GetIRCUser(self);
+			GIIRCd(Interface).IRCUsers[ClientID].Realname = sRealname;
+			GotoState('loggedin');
 		}
 	}
 
@@ -209,7 +223,7 @@ state Loggedin
 												}
 											}
 											else {
-												for (i = 0; i < Channels.length; i++) ircExecNAMES(GIIRCd(Interface).Channels[Channels[i].Channel].Name);
+												for (i = 0; i < Channels.length; i++) ircExecNAMES(GIIRCd(Interface).Channels[Channels[i]].Name);
 											}
 											break;
 			case "LIST":		ircExecLIST(); // can only print local channels
@@ -297,25 +311,31 @@ begin:
 function ircExecMOTD()
 {
 	local int i;
+	local string chans;
 	if (MOTD.length == 0) 
 	{
 		SendIRC(":MOTD File is missing", "422"); // ERR_NOMOTD
 		return;
 	}
 	SendIRC(":-"@interface.gateway.hostname@"Message of the Day -", "375");
+	for (i = 0; i < GIIRCd(Interface).Channels.length; i++)
+	{
+		chans $= GIIRCd(Interface).Channels[i].Name$" ";
+	}
 	for (i = 0; i < MOTD.length; i++) 
 	{
 		MOTD[i] = repl(MOTD[i], "%hostname%", interface.gateway.hostname);
+		MOTD[i] = repl(MOTD[i], "%channels%", chans);
 		SendIRC(":-"@MOTD[i], "372");
 	}
 	SendIRC(":End of MOTD command.", "376");
 }
 
-function ircExecQUIT(optional string QuitMsg, optional bool bDontClose)
+function ircExecQUIT(optional string QuitMsg)
 {
 	if (QuitMsg == "") QuitMsg = sUsername;
-	// TODO: broadcast mesg
-	if (!bDontClose) Close();
+	QuitMessage = QuitMsg;
+	if (LinkState == STATE_Connected) Close();
 }
 
 function ircExecJOIN(string channel, optional string key)
@@ -352,7 +372,7 @@ function ircExecJOIN(string channel, optional string key)
 		{
 			SendIRC(channel@":Cannot join channel (+k)", "475"); // ERR_BADCHANNELKEY
 		}
-		else if (GIIRCd(Interface).Channels[id].Limit <= GIIRCd(Interface).Channels[id].Users.length)
+		else if (GIIRCd(Interface).Channels[id].Limit <= GIIRCd(Interface).Channels[id].Users.length && GIIRCd(Interface).Channels[id].Limit > 0)
 		{
 			SendIRC(channel@":Cannot join channel (+l)", "471"); // ERR_CHANNELISFULL
 		}
@@ -370,12 +390,14 @@ function ircExecJOIN(string channel, optional string key)
 		}
 		else {
 			Channels.length = Channels.length+1;
-			Channels[Channels.length-1].Channel = id;
+			Channels[Channels.length-1] = id;
 			GIIRCd(Interface).Channels[id].Users.length = GIIRCd(Interface).Channels[id].Users.length+1;
 			GIIRCd(Interface).Channels[id].Users[GIIRCd(Interface).Channels[id].Users.length-1].uid = ClientID;
 			if (GIIRCd(Interface).Channels[id].Users.length == 1) GIIRCd(Interface).Channels[id].Users[GIIRCd(Interface).Channels[id].Users.length-1].bOp = true;
+			SendText(":"$sUsername$"!"$sUserhost@"JOIN"@channel);
 			ircExecTOPIC(channel);
 			ircExecNAMES(channel);
+			GIIRCd(Interface).BroadcastMessage(":"$sUsername$"!"$sUserhost@"JOIN"@channel, id, self);
 		}
 	}
 }
@@ -384,27 +406,64 @@ function ircExecPART(string channel)
 {
 	local int i, id;
 	id = GIIRCd(Interface).GetChannel(channel);
-	for (i = 0; i < Channels.length; i++)
-	{
-		if (GIIRCd(Interface).Channels[Channels[i].channel].Name ~= channel)
-		{
-			id = Channels[i].channel;
-			break;
-		}
-	}
 	if (IsIn(, id))
 	{
-		// partChannel(id, self);
-		// partChannel( channel id, client, bNoBroadcast );
+		GIIRCd(Interface).BroadcastMessage(":"$sUsername$"!"$sUserhost@"PART"@channel, id);
+		for (i = 0; i < Channels.length; i++)
+		{
+			if (Channels[i] == id)
+			{
+				Channels.remove(i, 1);
+				break;
+			}
+		}
+		for (i = 0; i < GIIRCd(Interface).Channels[id].users.length; i++)
+		{
+			if (GIIRCd(Interface).Channels[id].users[i].uid == clientid)
+			{
+				GIIRCd(Interface).Channels[id].users.remove(i, 1);
+				break;
+			}
+		}
 	}
 	else {
-		// not on channel
+		SendIRC(channel@":You're not on that channel", "442"); // ERR_NOTONCHANNEL
 	}
 }
 
 function ircExecMODE(array<string> args)
 {
-	//...
+	local int id;
+	if (Left(args[0], 1) == "#" || Left(args[0], 1) == "&")
+	{
+		// chan modes
+		id = GIIRCd(Interface).GetChannel(args[0]);
+		if (IsIn(, id))
+		{
+			if (args.length < 2)
+			{
+				// get
+				SendIRC(args[0]@"+"$GIIRCd(Interface).Channels[id].mode, "324"); // RPL_CHANNELMODEIS
+				if (GIIRCd(Interface).Channels[id].Key != "")
+				{
+					SendIRC(args[0]@"+k"@GIIRCd(Interface).Channels[id].Key, "324"); // RPL_CHANNELMODEIS
+				}
+				if (GIIRCd(Interface).Channels[id].Limit > 0)
+				{
+					SendIRC(args[0]@"+l"@GIIRCd(Interface).Channels[id].Limit, "324"); // RPL_CHANNELMODEIS
+				}
+			}
+			else {
+				// set
+			}
+		}
+		else {
+			SendIRC(args[0]@":You're not on that channel", "442"); // ERR_NOTONCHANNEL
+		}
+	}
+	else {
+		// nick modes
+	}
 }
 
 function ircExecTOPIC(string channel, optional string newTopic, optional int id)
@@ -443,17 +502,18 @@ function ircExecNAMES(optional string channel, optional int id)
 	}
 	for (i = 0; i < GIIRCd(Interface).Channels[id].Users.length; i++)
 	{
+		if (tmp != "") tmp $= " ";
 		if (GIIRCd(Interface).Channels[id].Users[i].bOp) tmp $= "@";
 		else if (GIIRCd(Interface).Channels[id].Users[i].bHalfop) tmp $= "%";
 		else if (GIIRCd(Interface).Channels[id].Users[i].bVoice) tmp $= "+";
-		tmp $= GIIRCd(Interface).IRCUsers[GIIRCd(Interface).Channels[id].Users[i].uid].Nick$" ";
-		if (i % 10 == 0)
+		tmp $= GIIRCd(Interface).IRCUsers[GIIRCd(Interface).Channels[id].Users[i].uid].Nick;
+		if (i+1 % 10 == 0)
 		{
-			SendIRC(GIIRCd(Interface).Channels[id].Name@":"$tmp, "353"); // RPL_NAMREPLY
+			SendIRC("="@GIIRCd(Interface).Channels[id].Name@":"$tmp, "353"); // RPL_NAMREPLY
 			tmp = "";
 		}
 	}
-	if (tmp != "") SendIRC(GIIRCd(Interface).Channels[id].Name@":"$tmp, "353"); // RPL_NAMREPLY
+	if (tmp != "") SendIRC("="@GIIRCd(Interface).Channels[id].Name@":"$tmp, "353"); // RPL_NAMREPLY
 	SendIRC(GIIRCd(Interface).Channels[id].Name@":End of /NAMES list", "366"); // RPL_ENDOFNAMES
 }
 
@@ -471,17 +531,58 @@ function ircExecVERSION(optional string server)
 
 function ircExecPRIVMSG(string receipt, string text)
 {
-	// ...
+	local int id;
+	if (Left(receipt, 1) == "#" || Left(receipt, 1) == "&")
+	{
+		id = GIIRCd(Interface).GetChannel(receipt);
+		if (!IsIn(, id))
+		{
+			SendIRC(receipt@":You're not on that channel", "442"); // ERR_NOTONCHANNEL
+			return;
+		}
+		GIIRCd(Interface).BroadcastMessage(":"$sUsername$"!"$sUserhost@"PRIVMSG"@receipt@text, id, self);
+	}
+	else {
+		// nick msg
+	}
 }
 
 function ircExecNOTICE(string receipt, string text)
 {
-	// ...
+	//`...
 }
 
 function ircExecWHO(optional string mask, optional bool bOnlyOps)
 {
-	//...
+	local int id, i, uid;
+	local string tmp;
+	if (Left(mask, 1) == "#" || Left(mask, 1) == "&")
+	{
+		id = GIIRCd(Interface).GetChannel(mask);
+		if (!IsIn(, id))
+		{
+			SendIRC(mask@":You're not on that channel", "442"); // ERR_NOTONCHANNEL
+			return;
+		}
+		for (i = 0; i < GIIRCd(Interface).Channels[id].Users.length; i++)
+		{
+			// "<channel> <user> <host> <server> <nick> <H|G>[*][@|+] :<hopcount> <real name>"
+			uid = GIIRCd(Interface).Channels[id].Users[i].uid;
+			tmp = mask@repl(GIIRCd(Interface).IRCUsers[uid].Userhost,"@", " ");
+			tmp @= interface.gateway.hostname;
+			tmp @= GIIRCd(Interface).IRCUsers[uid].Nick;
+			Tmp @= "H"; // only H, no away supported
+			if (GIIRCd(Interface).Channels[id].Users[i].bOp) tmp $= "@";
+			else if (GIIRCd(Interface).Channels[id].Users[i].bHalfop) tmp $= "%";
+			else if (GIIRCd(Interface).Channels[id].Users[i].bVoice) tmp $= "+";
+			tmp @= ":0"@GIIRCd(Interface).IRCUsers[uid].Realname;
+			SendIRC(tmp, "352"); // RPL_WHOREPLY
+		}
+	}
+	else {
+		// nick msg
+	}
+	SendIRC(mask@":End of /WHO list", "315"); // RPL_ENDOFWHO
 }
 
 function ircExecKILL(string nick, string message)
@@ -535,11 +636,12 @@ defaultproperties
 	MOTD[23]="                          . . ."
 	MOTD[24]=""
 	MOTD[25]="   Welcome to %hostname%"
-	MOTD[26]=""
-	MOTD[27]="   This server uses the UnGateway system maybe by Michiel 'El Muerte' Hendriks."
-	MOTD[28]="   This IRC server is just part of an even larger system."
-	MOTD[29]=""
-	MOTD[30]="   For more information about UnGateway visit the homepage:"
-	MOTD[31]="       http://ungateway.drunksnipers.com"
-	MOTD[32]=""
+	MOTD[26]="   Available channels are: %channels%"
+	MOTD[27]=""
+	MOTD[28]="   This server uses the UnGateway system maybe by Michiel 'El Muerte' Hendriks."
+	MOTD[29]="   This IRC server is just part of an even larger system."
+	MOTD[30]=""
+	MOTD[31]="   For more information about UnGateway visit the homepage:"
+	MOTD[32]="       http://ungateway.drunksnipers.com"
+	MOTD[33]=""
 }
