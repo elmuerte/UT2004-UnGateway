@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UnGatewayInterface.uc,v 1.8 2004/05/21 20:56:34 elmuerte Exp $ -->
+	<!-- $Id: UnGatewayInterface.uc,v 1.9 2004/05/24 17:07:33 elmuerte Exp $ -->
 *******************************************************************************/
 class UnGatewayInterface extends TcpLink abstract config;
 
@@ -41,7 +41,7 @@ struct APEntry
 	var EAPolicy policy;
 };
 /** controlls from where clients may connect, order is important */
-var(AccessPolicy) globalconfig array<APEntry> AccessPolicy;
+var(AccessPolicy) config array<APEntry> AccessPolicy;
 
 /**
 	identifier of the interface
@@ -51,7 +51,7 @@ var const string Ident;
 /** CVS Id string */
 var const string CVSversion;
 
-var localized string PICat, PILabel[3], PIDescription[3];
+var localized string PICat, PILabel[4], PIDescription[4];
 
 /** Called after the object has been created */
 function Create(GatewayDaemon gwd)
@@ -99,12 +99,6 @@ event GainedChild(Actor Other)
 		return;
 	}
 	else {
-		if (!CheckAccessPolicy(UnGatewayClient(Other).RemoteAddr))
-		{
-			Other.Destroyed();
-			Other = none;
-			return;
-		}
 		clientCount++;
 		if(iMaxClients > 0 && clientCount > iMaxClients && LinkState == STATE_Listening)
 		{
@@ -164,7 +158,6 @@ function bool CheckAccessPolicy(IpAddr inaddr)
 			res = AccessPolicy[i].policy == AP_Allow;
 		}
 	}
-	//TODO: broken!?
 	gateway.Logf("CheckAccessPolicy("$addr$") ="@res, Name, gateway.LOG_EVENT);
 	return res;
 }
@@ -175,6 +168,7 @@ static function FillPlayInfo(PlayInfo PlayInfo)
 	PlayInfo.AddSetting(default.PICat, "iListenPort", default.PILabel[0], 255, 1, "Text", "5;1:65535");
 	PlayInfo.AddSetting(default.PICat, "bUseNextAvailable", default.PILabel[1], 1, 1, "Check");
 	PlayInfo.AddSetting(default.PICat, "iMaxClients", default.PILabel[2], 255, 1, "Text", "3;1:255");
+	PlayInfo.AddSetting(default.PICat, "AcceptClass", default.PILabel[3], 255, 1, "Custom");
 	default.AcceptClass.static.FillPlayInfo(PlayInfo);
 }
 
@@ -197,7 +191,7 @@ defaultproperties
 	RequestedReceiveMode=RMODE_Event
 	RequestedLinkMode=MODE_Line
 	iMaxClients=10
-	CVSversion="$Id: UnGatewayInterface.uc,v 1.8 2004/05/21 20:56:34 elmuerte Exp $"
+	CVSversion="$Id: UnGatewayInterface.uc,v 1.9 2004/05/24 17:07:33 elmuerte Exp $"
 
 	AccessPolicy[0]=(hostmask="*",policy=AP_Allow);
 
@@ -207,4 +201,6 @@ defaultproperties
 	PIDescription[1]="If the current listen port is in use, pick the next available port."
 	PILabel[2]="Maximum clients"
 	PIDescription[2]="The maximum number of clients that may connect to this interface. if the maximum is reached new clients will be rejected."
+	PILabel[3]="Access policy"
+	PIDescription[3]="Access policy for this interface, this is a per interface setting."
 }

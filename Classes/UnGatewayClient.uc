@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UnGatewayClient.uc,v 1.20 2004/05/09 18:43:44 elmuerte Exp $ -->
+	<!-- $Id: UnGatewayClient.uc,v 1.21 2004/05/24 17:07:33 elmuerte Exp $ -->
 *******************************************************************************/
 class UnGatewayClient extends TCPLink abstract config;
 
@@ -44,9 +44,17 @@ delegate OnTabComplete();
 /** called after receiving input in the request input state */
 delegate OnRequestInputResult(UnGatewayClient client, coerce string result);
 
-/** called after the interface received the event GainedChild */
+/**
+	called after the interface received the event GainedChild, should not be
+	overwritten in subclasses, use Initialized() instead
+*/
 event Accepted()
 {
+	if (!Interface.CheckAccessPolicy(RemoteAddr))
+	{
+		Close();
+		return;
+	}
 	Interface.Gateway.Logf("Accepted", Name, Interface.Gateway.LOG_EVENT);
 	Interface.Gateway.Logf("[Accepted] Connection opened from"@IpAddrToString(RemoteAddr), Name, Interface.Gateway.LOG_INFO);
 	ClientAddress = IpAddrToString(RemoteAddr);
@@ -57,18 +65,25 @@ event Accepted()
 	sPassword = "";
 	inbuffer = "";
 	LoginTries = 0;
+	Initialized();
 }
+
+/** will be called after Accepted (if succesfull) */
+function Initialized();
 
 /** connection closed, clean up */
 event Closed()
 {
 	Interface.Gateway.Logf("Closed", Name, Interface.Gateway.LOG_EVENT);
-	Interface.Gateway.Logout(Self);
+	if (PlayerController != none) Interface.Gateway.Logout(Self);
 	// get rid of PC
 	Interface.gateway.NotifyClientLeave(self);
-	PlayerController.client = none;
-	PlayerController.Destroy();
-	PlayerController = none;
+	if (PlayerController != none)
+	{
+		PlayerController.client = none;
+		PlayerController.Destroy();
+		PlayerController = none;
+	}
 	Interface = none;
 	Destroy();
 }
@@ -198,5 +213,5 @@ function int AdvSplit(string input, string delim, out array<string> elm, optiona
 defaultproperties
 {
 	PlayerControllerClass=class'UnGateway.UnGatewayPlayer'
-	CVSversion="$Id: UnGatewayClient.uc,v 1.20 2004/05/09 18:43:44 elmuerte Exp $"
+	CVSversion="$Id: UnGatewayClient.uc,v 1.21 2004/05/24 17:07:33 elmuerte Exp $"
 }

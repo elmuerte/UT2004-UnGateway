@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 
 				   UnGateway
-                                version 101 Beta
+                                version 102 Beta
                           Michiel "El Muerte" Hendriks
                            elmuerte@drunksnipers.com
 
@@ -21,6 +21,12 @@ PuTTY, free software).
 Security notice: the telnet protocol is plain text, there is no form of 
 encryption. On the side note: the UT2004 webadmin does not have any better
 protection.
+
+Additionally from version 102 beta the IRC daemon is also functional. The IRC
+server works pretty much like any other IRC server, so a normal IRC client 
+should work.
+Not every function of the IRC protocol has been implemented, but at the moment
+it's functional.
 
 -------------------------------------------------------------------------------
 Installation:
@@ -88,6 +94,9 @@ Each interface contains at least the following configuration variables:
 * int: iMaxClients
 	The maximum number of clients that may connect to this interface. if 
 	the maximum is reached new clients will be rejected.
+* APEntry: AccessPolicy
+	A list with access policies that can connect to this interface. By 
+	default connections are accepted from any interface.
 
 Additional configuration variable can be available for each interface.
 

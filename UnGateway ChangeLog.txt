@@ -1,3 +1,7 @@
+Monday, May 24, 2004
+- Implemented AccessPolicies for each interface. This will allow you to limit
+  the IP addresses than can connect to the interface.
+
 Friday, May 21, 2004
 - IRC: real players quit the channel when they quit the server
 

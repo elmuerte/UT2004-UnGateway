@@ -7,10 +7,10 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GIIRCd.uc,v 1.18 2004/05/21 20:56:34 elmuerte Exp $ -->
+	<!-- $Id: GIIRCd.uc,v 1.19 2004/05/24 17:07:33 elmuerte Exp $ -->
 *******************************************************************************/
 
-class GIIRCd extends UnGatewayInterface;
+class GIIRCd extends UnGatewayInterface config;
 
 /** we need to keep a record of clients here */
 var array<GCIRC> Clients;
@@ -395,7 +395,7 @@ function NotifyClientLeave(UnGatewayClient client)
 defaultproperties
 {
 	Ident="IRC/101"
-	CVSversion="$Id: GIIRCd.uc,v 1.18 2004/05/21 20:56:34 elmuerte Exp $"
+	CVSversion="$Id: GIIRCd.uc,v 1.19 2004/05/24 17:07:33 elmuerte Exp $"
 	AcceptClass=class'UnGateway.GCIRC'
 	IRCChannelClass=class'UnGateway.UGIRCChannel'
 }

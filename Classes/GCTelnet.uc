@@ -10,7 +10,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCTelnet.uc,v 1.28 2004/05/09 18:43:43 elmuerte Exp $	-->
+	<!-- $Id: GCTelnet.uc,v 1.29 2004/05/24 17:07:33 elmuerte Exp $	-->
 *******************************************************************************/
 /*
 	TODO:
@@ -249,9 +249,9 @@ delegate bool OnNewline()
 	return true;
 }
 
-event Accepted()
+function Initialized()
 {
-	Super.Accepted();
+	Super.Initialized();
 	bEcho = true;
 
 	// don't echo - server: WILL ECHO
@@ -1433,7 +1433,7 @@ static event string GetDescriptionText(string PropName)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.28 2004/05/09 18:43:43 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.29 2004/05/24 17:07:33 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0

@@ -8,12 +8,14 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCIRC.uc,v 1.20 2004/05/21 20:56:34 elmuerte Exp $ -->
+	<!-- $Id: GCIRC.uc,v 1.21 2004/05/24 17:07:33 elmuerte Exp $ -->
 *******************************************************************************/
-class GCIRC extends UnGatewayClient;
+class GCIRC extends UnGatewayClient config;
 
 /** Show the message of the day on login */
 var(Config) config bool bShowMotd;
+/** if set the user must login with a valid username and password when they register */
+var(Config) config bool bMustLogin;
 /** Message of the Day */
 var(Config) config array<string> MOTD;
 /** Maximum Channels a user can join */
@@ -132,6 +134,12 @@ auto state Login
 			    	Close();
 			    	return;
 				}
+			}
+			if (bMustLogin && !IsAdmin())
+			{
+				SendIRC(":Password incorrect", "464"); // ERR_PASSWDMISMATCH
+		    	Close();
+		    	return;
 			}
 			ClientID = GIIRCd(Interface).GetIRCUser(self);
 			interface.gateway.Logf("[Login] I am ClientID #"$ClientID, Name, interface.gateway.LOG_DEBUG);
@@ -798,7 +806,8 @@ function outputChat(coerce string pname, coerce string message, optional name Ty
 defaultproperties
 {
 	ClientID=-1
-	CVSversion="$Id: GCIRC.uc,v 1.20 2004/05/21 20:56:34 elmuerte Exp $"
+	CVSversion="$Id: GCIRC.uc,v 1.21 2004/05/24 17:07:33 elmuerte Exp $"
+	bMustLogin=false
 	bShowMotd=true
 	MaxChannels=2
 	bAllowCreateChannel=false
