@@ -10,13 +10,13 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCTelnet.uc,v 1.24 2004/04/16 10:38:22 elmuerte Exp $	-->
+	<!-- $Id: GCTelnet.uc,v 1.25 2004/04/16 14:28:26 elmuerte Exp $	-->
 *******************************************************************************/
 /*
 	TODO:
 	- handle line overflow, redraw partial line
 */
-class GCTelnet extends UnGatewayClient;
+class GCTelnet extends UnGatewayClient config;
 
 /** Telnet command: "Interpret as Command" */
 const T_IAC			= 255;
@@ -1365,7 +1365,8 @@ static function FillPlayInfo(PlayInfo PlayInfo)
 	super.FillPlayInfo(PlayInfo);
 	PlayInfo.AddSetting(default.PICat, "CommandPrompt", default.PILabel[0], 128, 1, "Text");
 	PlayInfo.AddSetting(default.PICat, "bShowMotd", default.PILabel[1], 128, 1, "Check");
-	PlayInfo.AddSetting(default.PICat, "MOTD", default.PILabel[2], 128, 1, "Text");
+	// adding MOTD crashes when it contains a lot of data
+	//PlayInfo.AddSetting(default.PICat, "MOTD", default.PILabel[2], 128, 1, "Text");
 	PlayInfo.AddSetting(default.PICat, "iMaxLogin", default.PILabel[3], 196, 1, "Text", "3;1:255");
 	PlayInfo.AddSetting(default.PICat, "fDelayInitial", default.PILabel[4], 196, 1, "Text", "10;0:65535");
 	PlayInfo.AddSetting(default.PICat, "fDelayWrongPassword", default.PILabel[5], 196, 1, "Text", "10;0:65535");
@@ -1374,7 +1375,6 @@ static function FillPlayInfo(PlayInfo PlayInfo)
 	PlayInfo.AddSetting(default.PICat, "bSaveHistory", default.PILabel[8], 64, 1, "Check");
 	PlayInfo.AddSetting(default.PICat, "CommandHistoryClass", default.PILabel[9], 128, 1, "Text");
 	PlayInfo.AddSetting(default.PICat, "ChatMode", default.PILabel[10], 128, 1, "Select", default.PIData[0]);
-	default.AcceptClass.static.FillPlayInfo(PlayInfo);
 }
 
 static event string GetDescriptionText(string PropName)
@@ -1398,7 +1398,7 @@ static event string GetDescriptionText(string PropName)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.24 2004/04/16 10:38:22 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.25 2004/04/16 14:28:26 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0
