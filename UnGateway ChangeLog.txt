@@ -1,0 +1,3 @@
+Wednesday, April 21, 2004
+- Added policy editing commands
+- Added kick and ban commands

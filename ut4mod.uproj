@@ -2,6 +2,7 @@ d:\dev\ut2004\ut2-code
 0.8
 [Group]
 name=UnGateway Base
+System\wUtils105.u
 System\UnGateway.u
 System\UnGateway.int
 Help\UnGateway-help.txt
