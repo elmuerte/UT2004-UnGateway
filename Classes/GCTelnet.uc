@@ -2,7 +2,8 @@
 	GCTelnet
 	Telnet client, spawned from GITelnetd
 	Note: windows telnet client should use ANSI not VT100
-	$Id: GCTelnet.uc,v 1.1 2003/09/04 08:11:46 elmuerte Exp $
+	RFC: 318, 513, 764, 854, 855, 857, 858, 859, 884, 930, 1073, 1091, 1116, 1572
+	$Id: GCTelnet.uc,v 1.2 2003/09/04 11:26:41 elmuerte Exp $
 */
 class GCTelnet extends UnGatewayClient;
 
@@ -42,8 +43,6 @@ var config float fDelayWrongPassword;
 */
 var config bool bDisableAuth;
 
-var protected int LoginTries;
-var protected string inbuffer, sUsername, sPassword;
 /** cursor position: x,y, init-x */
 var protected int cursorpos[3];
 /** 
@@ -64,26 +63,18 @@ var protected string LastHistoryInput;
 var protected string ClipBoard;
 
 // localization
-var localized string msgUsername, msgPassword, msgLoginFailed, msgTooManuLogins;
+var localized string msgUsername, msgPassword, msgLoginFailed, msgTooManuLogins, msgUnknownCommand;
 
-/** called when input is received */
-delegate OnReceiveInput(int Count, byte B[255]);
-/** called from OnReceiveInput to handle a command */
-delegate OnProcInput(coerce string input);
-/** called from OnReceiveInput to handle escape codes */
+/** called from defReceiveInput to handle escape codes */
 delegate int OnEscapeCode(int pos, int Count, byte B[255])
 {
 	return 0;
 }
-/** called when ^D is pressed */
-delegate OnLogout();
 
 event Accepted()
 {
 	Super.Accepted();
 	bEcho = true;	
-	inbuffer = "";
-	LoginTries = 0;
 
 	// don't echo - server: WILL ECHO
   SendText(Chr(T_IAC)$Chr(T_WILL)$Chr(O_ECHO));
@@ -102,12 +93,6 @@ event Accepted()
 		if (fDelayInitial == 0) GotoState('login');
 		else SetTimer(fDelayInitial, false);
 	}
-}
-
-event ReceivedBinary( int Count, byte B[255] )
-{  
-	if (count == 0) return;
-	OnReceiveInput(Count, B);
 }
 
 /** 
@@ -131,7 +116,7 @@ function defReceiveInput(int Count, byte B[255])
 		else if (B[i] == C_CR) // new line
 		{
 			SendLine(); // send a newline
-			OnProcInput(inbuffer);
+			OnReceiveLine(inbuffer);
 			inbuffer = "";
 		}
 		else if ((B[i] == C_BS) || (B[i] == C_DEL)) 
@@ -307,7 +292,10 @@ function SendPrompt()
 {
 	local string line;
 	line = repl(CommandPrompt, "%username%", sUsername);
-	line = repl(line, "%localhost%", Level.ComputerName);
+	line = repl(line, "%computername%", Interface.gateway.ComputerName);
+	line = repl(line, "%hostname%", Interface.gateway.hostname);
+	line = repl(line, "%hostaddress%", Interface.gateway.hostaddress);
+	line = repl(line, "%clientaddress%", ClientAddress);
 	SendText(line);
 	cursorpos[0] = Len(line)-1;
 	cursorpos[2] = cursorpos[0]; // set init-x
@@ -363,7 +351,7 @@ function DisplayCommandHistory(int offset)
 function IssueMessage()
 {
 	SendLine();
-	SendLine("UnrealWarfare/"$Level.EngineVersion@Interface.gateway.Ident@Interface.Ident@Level.ComputerName@Interface.Gateway.CreationTime);
+	SendLine("UnrealWarfare/"$Level.EngineVersion@Interface.gateway.Ident@Interface.Ident@Interface.gateway.ComputerName@Interface.Gateway.CreationTime);
 	SendLine();
 }
 
@@ -440,8 +428,8 @@ state login
 	}
 
 begin:	
-	OnReceiveInput=defReceiveInput;
-	OnProcInput=procLogin;
+	OnReceiveBinary=defReceiveInput;
+	OnReceiveLine=procLogin;
 	OnEscapeCode=defProcEscape;
 	OnLogout=none;
 	SendText(msgUsername);
@@ -464,8 +452,8 @@ state login_failed
 	}
 
 begin:
-	OnReceiveInput=none;
-	OnProcInput=none;
+	OnReceiveBinary=none;
+	OnReceiveLine=none;
 	OnEscapeCode=none;
 	OnLogout=none;	
 }
@@ -482,7 +470,7 @@ state logged_in
 			return;
 		}
 		AddCommandHistory(input);			
-		if (!Interface.Gateway.ExecCommand(Self, cmd)) outputError("Unknown command:"@cmd[0]);
+		if (!Interface.Gateway.ExecCommand(Self, cmd)) outputError(repl(msgUnknownCommand, "%command%", cmd[0]));
 		SendPrompt(); // TODO: ommit prompt ?
 	}
 
@@ -494,8 +482,8 @@ state logged_in
 	}
 
 begin:
-	OnReceiveInput=defReceiveInput;
-	OnProcInput=procInput;
+	OnReceiveBinary=defReceiveInput;
+	OnReceiveLine=procInput;
 	OnEscapeCode=defProcEscape;
 	OnLogout=TryLogout;
 	IssueMessage();
@@ -514,7 +502,7 @@ function outputError(string errormsg)
 
 defaultproperties
 {
-	CommandPrompt="%username%@%localhost%:~$ "
+	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0
 	fDelayWrongPassword=5.0
@@ -524,4 +512,5 @@ defaultproperties
 	msgPassword="Password: "
 	msgLoginFailed="Login failed!"
 	msgTooManuLogins="Too many login tries, goodbye!"
+	msgUnknownCommand="Unknown command: %command%"
 }

@@ -1,7 +1,7 @@
 /**
 	UnGatewayInterface
 	Interface for TCP based services linked in the Gateway system
-	$Id: UnGatewayInterface.uc,v 1.1 2003/09/04 08:11:46 elmuerte Exp $
+	$Id: UnGatewayInterface.uc,v 1.2 2003/09/04 11:26:42 elmuerte Exp $
 */
 class UnGatewayInterface extends TcpLink abstract config;
 
@@ -29,6 +29,7 @@ var const string Ident;
 /** Called after the object has been created */
 function Create(GatewayDaemon gwd)
 {	
+	local IpAddr tmp;
 	gateway = gwd;
 	gateway.Logf("[Create] Starting:"@Ident, Name, gateway.LOG_INFO);	
 	ReceiveMode = RequestedReceiveMode;
@@ -46,6 +47,13 @@ function Create(GatewayDaemon gwd)
 	{
 		Error("UnGatewayInterface.LinkState != STATE_Ready");
 		return;
+	}
+	if (gateway.hostaddress == "")
+	{
+		gateway.hostaddress = "0.0.0.0"; // fail safe
+		GetLocalIP(tmp);
+		gateway.hostaddress = IpAddrToString(tmp);
+		gateway.hostaddress = Left(gateway.hostaddress, InStr(gateway.hostaddress, ":"));
 	}
 	if (!Listen()) gateway.Logf("[Create] Call to Listed() failed", Name, gateway.LOG_ERR);
 	gateway.Logf("[Create] Listening on port"@port, Name, gateway.LOG_INFO);
@@ -102,6 +110,6 @@ defaultproperties
 	AcceptClass=class'UnGateway.UnGatewayClient'
 	bUseNextAvailable=false
 	RequestedReceiveMode=RMODE_Event
-	RequestedLinkMode=MODE_Text
+	RequestedLinkMode=MODE_Line
 	iMaxClients=10
 }

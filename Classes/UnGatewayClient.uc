@@ -1,7 +1,7 @@
 /**
 	UnGatewayClient
 	client for TCP based services linked in the Gateway system
-	$Id: UnGatewayClient.uc,v 1.1 2003/09/04 08:11:46 elmuerte Exp $
+	$Id: UnGatewayClient.uc,v 1.2 2003/09/04 11:26:41 elmuerte Exp $
 */
 class UnGatewayClient extends TCPLink abstract config;
 
@@ -9,42 +9,70 @@ var UnGatewayInterface Interface;
 var class<UnGatewayPlayer> PlayerControllerClass;
 var UnGatewayPlayer PlayerController;
 
+var protected int LoginTries;
+var protected string inbuffer;
+var protected string sUsername, sPassword;
+var string ClientAddress;
+
+/** called when binary input is received */
+delegate OnReceiveBinary(int Count, byte B[255]);
+/** called when a line is received (sans the CR\LF) */
+delegate OnReceiveLine(coerce string line);
+/** called when raw text is received */
+delegate OnReceiveText(coerce string line);
+/** called when a client wants to log out */
+delegate OnLogout();
+
 /** called after the interface received the event GainedChild */
 event Accepted()
 {
-	Interface.Gateway.Logf("Accepted", Name, Interface.Gateway.LOG_EVENT);
+	Interface.Gateway.Logf("Accepted", Name, Interface.Gateway.LOG_EVENT);	
 	Interface.Gateway.Logf("[Accepted] Connection opened from"@IpAddrToString(RemoteAddr), Name, Interface.Gateway.LOG_INFO);
+	ClientAddress = IpAddrToString(RemoteAddr);
+	ClientAddress = Left(ClientAddress, InStr(ClientAddress, ":"));
 	PlayerController = spawn(PlayerControllerClass, Self);
+	sUsername = "";
+	sPassword = "";
+	inbuffer = "";
+	LoginTries = 0;
 }
 
+/** connection closed, clean up */
 event Closed()
 {
 	Interface.Gateway.Logf("Closed", Name, Interface.Gateway.LOG_EVENT);
 	Interface.Gateway.Logout(Self);
 }
 
-/** should be overwritten */
+/** don't override, use the delegate */
 event ReceivedLine( string Line )
 {
-	interface.gateway.Logf("ReceivedLine:"@Line, Name, interface.gateway.LOG_DEBUG);
+	local string x;
+	interface.gateway.Logf("ReceivedLine:"@Line, Name, interface.gateway.LOG_DEBUG);	
+	x = Right(line, 1);
+	while ((x == Chr(10)) || (x == Chr(13)))
+	{
+		line = Left(line, len(line)-1);
+		x = Right(line, 1);
+	}
+	if (Line == "") return;
+	OnReceiveLine(line);
 }
 
-/** should be overwritten */
+/** don't override, use the delegate */
 event ReceivedText( string Text )
 {
 	interface.gateway.Logf("ReceivedText:"@Text, Name, interface.gateway.LOG_DEBUG);
+	if (Text == "") return;
+	OnReceiveText(text);
 }
 
-/** should be overwritten */
+/** don't override, use the delegate */
 event ReceivedBinary( int Count, byte B[255] )
 {
-	local int i;
-	local string res;
-	for (i = 0; i < Count; i++)
-	{
-		res $= Chr(B[i]);
-	}
-	interface.gateway.Logf("ReceivedBinary:"@res, Name, interface.gateway.LOG_DEBUG);
+	interface.gateway.Logf("ReceivedBinary:"@Count@"bytes", Name, interface.gateway.LOG_DEBUG);
+	if (Count == 0) return;
+	OnReceiveBinary(Count, B);
 }
 
 /** return of a function call */
@@ -71,6 +99,7 @@ function int AdvSplit(string input, string delim, out array<string> elm, optiona
 		}
 		else {
 			i = InStr(input, " ");
+			if (i == -1) i = Len(input);
 			elm[elm.length-1] = Left(input, i);
 			input = Mid(input, i+1);
 		}
@@ -79,7 +108,46 @@ function int AdvSplit(string input, string delim, out array<string> elm, optiona
 			input = Mid(input, 1);
 		}
 	}
+	return elm.length;
 }
+
+/*
+// UT2003 Compatibility functions
+
+function string repl(string Source, string Replace, coerse string With)
+{
+	// waring: case sensitive
+	local int i;
+	local string Input;
+
+	if ( Source == "" || Replace == "" ) return;
+
+	Input = Source;
+	Source = "";
+	i = InStr(Input, Replace);
+	while(i != -1)
+	{
+		Source = Source $ Left(Input, i) $ With;
+		Input = Mid(Input, i + Len(Replace));
+		i = InStr(Input, Replace);
+	}
+	Source = Source $ Input;
+	return Source;
+}
+
+static final operator(44) string $= ( out	string A, coerce string B )
+{
+	A = A$B;
+	return A;
+}
+
+static final operator(44) string @= ( out string A, coerce string B )
+{
+	A = A@B;
+	return A;
+}
+
+*/
 
 defaultproperties
 {

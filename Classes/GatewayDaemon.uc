@@ -1,7 +1,7 @@
 /**
 	GatewayDaemon
 	Central Server
-	$Id: GatewayDaemon.uc,v 1.1 2003/09/04 08:11:46 elmuerte Exp $
+	$Id: GatewayDaemon.uc,v 1.2 2003/09/04 11:26:41 elmuerte Exp $
 */
 class GatewayDaemon extends Info config;
 
@@ -37,6 +37,8 @@ var array<CommandReference> CmdLookupTable;
 var const string Ident;
 /** time this daemon was started */
 var string CreationTime;
+/** host information */
+var string hostname, hostaddress, computername;
 
 /** Spawn all classes*/
 event PreBeginPlay()
@@ -46,7 +48,9 @@ event PreBeginPlay()
 	local class<UnGatewayInterface> UGI;
 	local class<UnGatewayApplication> UGA;
 
-	Level.ComputerName = Locs(Level.ComputerName);
+	ComputerName = Locs(Level.ComputerName);
+	hostname = ComputerName$".unknown";
+	//hostaddress = filled in by the first Interface loaded
 	Logf("[PreBeginPlay] Starting:"@Ident, Name, LOG_INFO);
 	CreationTime = Level.Year$"-"$Right("0"$Level.Month, 2)$"-"$Right("0"$Level.Day, 2)@Right("0"$Level.Hour, 2)$":"$Right("0"$Level.Minute,2)$":"$Right("0"$Level.Second,2)$"."$Right("00"$Level.Millisecond, 3);
 
@@ -56,6 +60,9 @@ event PreBeginPlay()
 	{
 		Auth = spawn(UGAuth, Self);
 		Auth.Create(self);
+	}
+	else {
+		Logf("[PreBeginPlay] Unable to create Authentication class:"@InterfaceClasses[i], Name, LOG_ERR);
 	}
 
 	Logf("[PreBeginPlay] Creating"@InterfaceClasses.length@"Interface(s)", Name, LOG_EVENT);
@@ -67,6 +74,9 @@ event PreBeginPlay()
 			Interfaces.length = Interfaces.length+1;
 			Interfaces[Interfaces.length-1] = spawn(UGI, Self);
 			Interfaces[Interfaces.length-1].Create(Self);
+		}
+		else {
+			Logf("[PreBeginPlay] Unable to create Interface:"@InterfaceClasses[i], Name, LOG_ERR);
 		}
 	}
 
@@ -80,7 +90,11 @@ event PreBeginPlay()
 			Applications[Applications.length-1] = new(Self) UGA;
 			Applications[Applications.length-1].Create();
 		}
+		else {
+			Logf("[PreBeginPlay] Unable to create Application:"@ApplicationClasses[i], Name, LOG_ERR);
+		}
 	}
+	Logf("[PreBeginPlay] I am:"@computername$"@"$hostname$"("$hostaddress$")", Name, LOG_INFO);
 }
 
 /** Log in an user */
