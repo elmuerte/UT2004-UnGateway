@@ -1,7 +1,7 @@
 /**
 	GAppDebug
-	Debug commands, should not be used in 
-	$Id: GAppDebug.uc,v 1.2 2003/12/28 21:40:55 elmuerte Exp $
+	Debug commands, should not be used in
+	$Id: GAppDebug.uc,v 1.3 2003/12/30 12:24:47 elmuerte Exp $
 */
 class GAppDebug extends UnGatewayApplication;
 
@@ -55,7 +55,7 @@ function execHelp(UnGatewayClient client, array<string> cmd)
 			}
 			else {
 				client.outputError("No help available for"@cmd[0]);
-			}				
+			}
 		}
 	}
 }
@@ -74,4 +74,7 @@ defaultproperties
 	Commands[0]=(Name="echo",Help="Returns it's first argument||Usage: echo \"some text\"")
 	Commands[1]=(Name="help",Help="Show help about commands|This should be a built-in command||Usage: help <command>")
 	Commands[2]=(Name="list",Help="List all registered commands")
+	Commands[3]=(Name="test",Help="...")
+	Commands[4]=(Name="testin",Help="...")
+	Commands[5]=(Name="testings",Help="...")
 }

@@ -1,7 +1,7 @@
 /**
 	GatewayDaemon
 	Central Server
-	$Id: GatewayDaemon.uc,v 1.2 2003/09/04 11:26:41 elmuerte Exp $
+	$Id: GatewayDaemon.uc,v 1.3 2003/12/30 12:24:47 elmuerte Exp $
 */
 class GatewayDaemon extends Info config;
 
@@ -35,6 +35,8 @@ var array<CommandReference> CmdLookupTable;
 
 /** system identifier */
 var const string Ident;
+/** CVS Id string */
+var const string CVSversion;
 /** time this daemon was started */
 var string CreationTime;
 /** host information */
@@ -52,6 +54,7 @@ event PreBeginPlay()
 	hostname = ComputerName$".unknown";
 	//hostaddress = filled in by the first Interface loaded
 	Logf("[PreBeginPlay] Starting:"@Ident, Name, LOG_INFO);
+	if (CVSversion != "") Logf("[PreBeginPlay] "@CVSversion, Name, LOG_INFO);
 	CreationTime = Level.Year$"-"$Right("0"$Level.Month, 2)$"-"$Right("0"$Level.Day, 2)@Right("0"$Level.Hour, 2)$":"$Right("0"$Level.Minute,2)$":"$Right("0"$Level.Second,2)$"."$Right("00"$Level.Millisecond, 3);
 
 	Logf("[PreBeginPlay] Creating AuthClass", Name, LOG_EVENT);
@@ -119,7 +122,7 @@ function Logf(coerce string Msg, name LogName, byte Level)
 	if ((Verbose & Level) != 0) Log(LogName$":"@Msg, LogName);
 }
 
-/** 
+/**
 	execute a command
 	if bNoConsole is true don't try to execute the command on the console.
 */
@@ -163,4 +166,5 @@ defaultproperties
 
 	AuthClass="UnGateway.GAuthSystem"
 	Ident="UnGateway/100"
+	CVSversion="$Id: GatewayDaemon.uc,v 1.3 2003/12/30 12:24:47 elmuerte Exp $"
 }

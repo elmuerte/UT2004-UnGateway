@@ -3,7 +3,7 @@
 	Telnet client, spawned from GITelnetd
 	Note: windows telnet client should use ANSI not VT100
 	RFC: 318, 513, 764, 854, 855, 857, 858, 859, 884, 930, 1073, 1091, 1116, 1572
-	$Id: GCTelnet.uc,v 1.3 2003/12/28 21:40:55 elmuerte Exp $
+	$Id: GCTelnet.uc,v 1.4 2003/12/30 12:24:47 elmuerte Exp $
 */
 class GCTelnet extends UnGatewayClient;
 
@@ -22,6 +22,7 @@ const O_TERMINAL  = 24;
 const O_WSIZE     = 31;
 // control codes
 const C_BS				= 8;
+const C_TAB				= 9;
 const C_NL				= 10;
 const C_CR				= 13;
 const C_ESC				= 27;
@@ -37,7 +38,7 @@ var config int iMaxLogin;
 var config float fDelayInitial;
 /** delay after an incorrect login */
 var config float fDelayWrongPassword;
-/** 
+/**
 	disable authentication, anonymous access allowed
 	NEVER USE THIS, change the gateway's authentication class instead
 */
@@ -45,7 +46,7 @@ var config bool bDisableAuth;
 
 /** cursor position: x,y, init-x */
 var protected int cursorpos[3];
-/** 
+/**
 	busy processing special sequences
 	current unsupported and broken
 */
@@ -61,6 +62,8 @@ var protected int CurHisIndex;
 var protected string LastHistoryInput;
 /** Temp storage of data cut away with ^K and pasted with ^Y */
 var protected string ClipBoard;
+/** used to detect double tabs for tab completion, second tab will display a list */
+var protected bool bTabComplRepeat;
 
 // localization
 var localized string msgUsername, msgPassword, msgLoginFailed, msgTooManuLogins, msgUnknownCommand;
@@ -74,7 +77,7 @@ delegate int OnEscapeCode(int pos, int Count, byte B[255])
 event Accepted()
 {
 	Super.Accepted();
-	bEcho = true;	
+	bEcho = true;
 
 	// don't echo - server: WILL ECHO
   SendText(Chr(T_IAC)$Chr(T_WILL)$Chr(O_ECHO));
@@ -95,8 +98,8 @@ event Accepted()
 	}
 }
 
-/** 
-	default input handler 
+/**
+	default input handler
 	will catch telnet control sequences and buffer the input
 	count is always > 0
 */
@@ -108,8 +111,9 @@ function defReceiveInput(int Count, byte B[255])
 	if (bProcEsc) i += OnEscapeCode(i, count, B);
 	if (bProcTelnet) i += ProcTelnetProtocol(i, count, b);
 	for (i = i; i < Count; i++)
-	{		
-		if (B[i] == T_IAC) 
+	{
+		if (B[i] != C_TAB) bTabComplRepeat = false;
+		if (B[i] == T_IAC)
 		{
 			i += ProcTelnetProtocol(i+1, count, b);
 		}
@@ -119,7 +123,7 @@ function defReceiveInput(int Count, byte B[255])
 			OnReceiveLine(inbuffer);
 			inbuffer = "";
 		}
-		else if ((B[i] == C_BS) || (B[i] == C_DEL)) 
+		else if ((B[i] == C_BS) || (B[i] == C_DEL))
 		{
 			if (!cmdLineBackspace()) Bell();
 		}
@@ -163,18 +167,22 @@ function defReceiveInput(int Count, byte B[255])
 			}
 		}
 		else if (B[i] == 0) {}
-		else if (B[i] == 10) {} // newline, ignore
-		else if (B[i] < 32) /* unhandled control code */ 
+		else if (B[i] == C_NL) {} // newline, ignore
+		else if (B[i] == C_TAB)  // tab
+		{
+			OnTabComplete();
+		}
+		else if (B[i] < 32) /* unhandled control code */
 		{
 			interface.gateway.Logf("[defReceiveInput] Unhandled control code:"@B[i], Name, interface.gateway.LOG_DEBUG);
 		}
-		else {			
+		else {
 			tmp = Mid(inbuffer, cursorpos[0]-cursorpos[2]);
-			inbuffer = Left(inbuffer, cursorpos[0]-cursorpos[2])$Chr(B[i])$tmp;			
+			inbuffer = Left(inbuffer, cursorpos[0]-cursorpos[2])$Chr(B[i])$tmp;
 			cursorpos[0]++;
 			if (bEcho)
 			{
-				SendText(Chr(B[i])$tmp);			
+				SendText(Chr(B[i])$tmp);
 				if (Len(tmp) > 0) SendText(Chr(C_ESC)$"["$string(Len(tmp))$"D");
 			}
 		}
@@ -205,7 +213,7 @@ function int defProcEscape(int pos, int Count, byte B[255])
 			length++;
 		}
 		if (B[pos] == 59) // ;
-		{		
+		{
 			pos++;
 			length++;
 			while ((B[pos] >= 48) && (B[pos] < 57)) // get val2
@@ -222,31 +230,82 @@ function int defProcEscape(int pos, int Count, byte B[255])
 		{
 			case 65:	length++; // A=Up
 								DisplayCommandHistory(1);
-								break; 
+								break;
 			case 66:	length++; // B=Down
 								DisplayCommandHistory(-1);
-								break; 
+								break;
 			case 67:	if (cursorpos[0] < Len(inbuffer)+cursorpos[2]) // C=Right
 								{
 									if (v1 == 0) v1++;
 									cursorpos[0] += v1;
 									SendText(Chr(C_ESC)$"["$val1$"C");
 								}
-								length++; 
-								break; 
+								length++;
+								break;
 			case 68:	if (cursorpos[0] > cursorpos[2]) // D=Left
 								{
 									if (v1 == 0) v1++;
 									cursorpos[0] -= v1;
 									SendText(Chr(C_ESC)$"["$val1$"D");
 								}
-								length++; 
+								length++;
 								break;
 			default:	interface.gateway.Logf("[defProcEscape] Unhandled escape code:"@B[pos], Name, interface.gateway.LOG_DEBUG);
 		}
 	}
 	bProcEsc = false;
 	return length;
+}
+
+/**	perform tab completion */
+function defTabComplete()
+{
+	local array<string> cmd, completion;
+	local int i, sz;
+	local string tmp;
+
+	if (inbuffer == "") Bell();
+	else if (AdvSplit(inbuffer, " ", cmd, "\"") == 0) Bell();
+	else {
+		// find first matching command
+		if (cmd.length == 1)
+		{
+			sz = Len(cmd[0]);
+			for (i = 0; i < Interface.gateway.CmdLookupTable.Length; i++)
+			{
+				if (Left(Interface.gateway.CmdLookupTable[i].Command, sz) ~= cmd[0])
+				{
+					completion.length = completion.length + 1;
+					completion[completion.Length-1] = Interface.gateway.CmdLookupTable[i].Command;
+				}
+			}
+			if (completion.Length == 1)
+			{
+				tmp = Mid(completion[0], sz);
+				inbuffer $= tmp;
+				SendText(tmp);
+				cursorpos[0] += Len(tmp);
+			}
+			else if (!bTabComplRepeat)
+			{
+				bTabComplRepeat = true;
+				Bell();
+			}
+			else {
+				SendLine("");
+				for (i = 0; i < completion.Length; i++)
+				{
+					SendLine(completion[i]);
+				}
+				SendPrompt();
+				SendText(inbuffer);
+				cursorpos[0] += Len(inbuffer);
+			}
+		}
+		else {
+			Interface.gateway.Logf("Tab completion for"@cmd.length@"items", Name, Interface.gateway.LOG_DEBUG);
+		}
+	}
 }
 
 /** set the cursor to possition x,y */
@@ -258,11 +317,11 @@ function SetCursor(int x, int y)
 /** sendtext and append newline */
 function SendLine(optional coerce string line)
 {
-	SendText(line$Chr(13)$chr(10));	
+	SendText(line$Chr(13)$chr(10));
 }
 
-/** 
-	process telnet control sequences 
+/**
+	process telnet control sequences
 */
 function int ProcTelnetProtocol( int pos, int Count, byte B[255] )
 {
@@ -353,6 +412,7 @@ function IssueMessage()
 {
 	SendLine();
 	SendLine("UnrealEngine2/"$Level.EngineVersion@Interface.gateway.Ident@Interface.Ident@Interface.gateway.ComputerName@Interface.Gateway.CreationTime);
+	if (Interface.gateway.CVSversion != "") SendLine(Interface.gateway.CVSversion);
 	SendLine();
 }
 
@@ -365,7 +425,7 @@ function bool cmdLineBackspace()
 		tmp = Mid(inbuffer, cursorpos[0]-cursorpos[2]);
 		inbuffer = Left(inbuffer, cursorpos[0]-cursorpos[2]-1)$tmp;
 		cursorpos[0]--;
-		if (bEcho) 
+		if (bEcho)
 		{
 			SendText(Chr(C_ESC)$"[D"$Chr(C_ESC)$"[P");
 			//SendText(Chr(C_ESC)$"[D"$tmp$Chr(C_ESC)$"[K");
@@ -391,7 +451,7 @@ function bool cmdLineDelete()
 }
 
 /** initial state */
-auto state init 
+auto state init
 {
 	function Timer()
 	{
@@ -415,11 +475,11 @@ state login
 			sPassword = input;
 			bEcho = true;
 			if (Interface.gateway.login(self, sUsername, sPassword, interface.ident))
-			{				
+			{
 				GotoState('logged_in');
 			}
 			else {
-				LoginTries++;				
+				LoginTries++;
 				sUsername = "";
 				sPassword = "";
 				SetTimer(fDelayWrongPassword, false);
@@ -428,16 +488,17 @@ state login
 		}
 	}
 
-begin:	
+begin:
 	OnReceiveBinary=defReceiveInput;
 	OnReceiveLine=procLogin;
 	OnEscapeCode=defProcEscape;
 	OnLogout=none;
+	OnTabComplete=none;
 	SendText(msgUsername);
 }
 
 /** log in failed - delay */
-state login_failed 
+state login_failed
 {
 	function Timer()
 	{
@@ -456,7 +517,8 @@ begin:
 	OnReceiveBinary=none;
 	OnReceiveLine=none;
 	OnEscapeCode=none;
-	OnLogout=none;	
+	OnLogout=none;
+	OnTabComplete=none;
 }
 
 /** logged in state */
@@ -470,7 +532,7 @@ state logged_in
 			SendPrompt();
 			return;
 		}
-		AddCommandHistory(input);			
+		AddCommandHistory(input);
 		if (!Interface.Gateway.ExecCommand(Self, cmd)) outputError(repl(msgUnknownCommand, "%command%", cmd[0]));
 		SendPrompt(); // TODO: ommit prompt ?
 	}
@@ -487,6 +549,7 @@ begin:
 	OnReceiveLine=procInput;
 	OnEscapeCode=defProcEscape;
 	OnLogout=TryLogout;
+	OnTabComplete=defTabComplete;
 	IssueMessage();
 	SendPrompt();
 }

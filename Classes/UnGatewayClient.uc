@@ -1,7 +1,7 @@
 /**
 	UnGatewayClient
 	client for TCP based services linked in the Gateway system
-	$Id: UnGatewayClient.uc,v 1.8 2003/10/25 15:49:13 elmuerte Exp $
+	$Id: UnGatewayClient.uc,v 1.9 2003/12/30 12:24:47 elmuerte Exp $
 */
 class UnGatewayClient extends TCPLink abstract config;
 
@@ -23,11 +23,13 @@ delegate OnReceiveLine(coerce string line);
 delegate OnReceiveText(coerce string line);
 /** called when a client wants to log out */
 delegate OnLogout();
+/** called to complete the current inbuffer, e.g. tab completion */
+delegate OnTabComplete();
 
 /** called after the interface received the event GainedChild */
 event Accepted()
 {
-	Interface.Gateway.Logf("Accepted", Name, Interface.Gateway.LOG_EVENT);	
+	Interface.Gateway.Logf("Accepted", Name, Interface.Gateway.LOG_EVENT);
 	Interface.Gateway.Logf("[Accepted] Connection opened from"@IpAddrToString(RemoteAddr), Name, Interface.Gateway.LOG_INFO);
 	ClientAddress = IpAddrToString(RemoteAddr);
 	ClientAddress = Left(ClientAddress, InStr(ClientAddress, ":"));
@@ -71,17 +73,17 @@ event ReceivedLine( string Line )
 			tmp = Mid(tmp, 1);
 			x = Left(tmp, 1);
 		}
-	
+
 		if (tmp != "")
 		{
-			interface.gateway.Logf("ReceivedLine:"@tmp, Name, interface.gateway.LOG_DEBUG);	
+			interface.gateway.Logf("ReceivedLine:"@tmp, Name, interface.gateway.LOG_DEBUG);
 			OnReceiveLine(tmp);
 		}
 	}
 	*/
 	if (Line != "")
 	{
-		interface.gateway.Logf("ReceivedLine:"@Line, Name, interface.gateway.LOG_DEBUG);	
+		interface.gateway.Logf("ReceivedLine:"@Line, Name, interface.gateway.LOG_DEBUG);
 		OnReceiveLine(Line);
 	}
 }
