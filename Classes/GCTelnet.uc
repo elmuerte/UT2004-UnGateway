@@ -10,8 +10,12 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCTelnet.uc,v 1.22 2004/04/15 20:37:51 elmuerte Exp $	-->
+	<!-- $Id: GCTelnet.uc,v 1.23 2004/04/16 07:17:18 elmuerte Exp $	-->
 *******************************************************************************/
+/*
+	TODO:
+	- handle line overflow, redraw partial line
+*/
 class GCTelnet extends UnGatewayClient;
 
 /** Telnet command: "Interpret as Command" */
@@ -694,6 +698,13 @@ function ClearResetLine()
 	SendText(Chr(C_ESC)$"[2K"$Chr(C_ESC)$"["$WindowSize[1]$";1H");
 }
 
+/** set autowrapping on or off */
+function Autowrap(optional bool bOn)
+{
+	if (bOn) SendText(Chr(C_ESC)$"[?7h");
+	else SendText(Chr(C_ESC)$"[?7l");
+}
+
 /**
 	add color coding to a string. this is pretty slow, it's better to use hardcoded
 	strings when you don't need to set it dynamically.
@@ -853,13 +864,14 @@ function bool cmdLineBackspace()
 	{
 		tmp = Mid(inbuffer, cursorpos[0]-cursorpos[2]);
 		inbuffer = Left(inbuffer, cursorpos[0]-cursorpos[2]-1)$tmp;
-		cursorpos[0]--;
 		if (bEcho)
 		{
-			SendText(Chr(C_ESC)$"[D"$Chr(C_ESC)$"[P");
+			if (cursorpos[0] < windowsize[0]+1) SendText(Chr(C_ESC)$"[D"$Chr(C_ESC)$"[P");
+			if (cursorpos[0] == windowsize[0]+1) SendText(Chr(C_ESC)$"[P");
 			//SendText(Chr(C_ESC)$"[D"$tmp$Chr(C_ESC)$"[K");
 			//if (Len(tmp) > 0) SendText(Chr(C_ESC)$"["$string(Len(tmp))$"D");
 		}
+		cursorpos[0]--;
 		return true;
 	}
 	return false;
@@ -1048,6 +1060,7 @@ begin:
 	OnTabComplete=defTabComplete;
 	OnNewline=none;
 	OnMetaKey=procMeta;
+	Autowrap(false);
 	SendPrompt();
 }
 
@@ -1208,6 +1221,7 @@ begin:
 	tmpCmdHist=CommandHistory;
 	CommandHistory.length = 0;
 	CurHisIndex = -1;
+	Autowrap(false);
 	SendChatPrompt();
 }
 
@@ -1331,6 +1345,7 @@ function SendChatPrompt(optional bool bNoBuffer)
 {
 	local string line;
 	SetCursor(1, WindowSize[1]);
+	cursorpos[1] = WindowSize[1];
 	line = "["$sUsername$"]";
 	SendText(Chr(C_ESC)$"[44;37m"$line$Chr(C_ESC)$"[0m ");
 	cursorpos[0] = Len(line)+1; // the additional space
@@ -1345,7 +1360,7 @@ function SendChatPrompt(optional bool bNoBuffer)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.22 2004/04/15 20:37:51 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.23 2004/04/16 07:17:18 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0
