@@ -1,7 +1,7 @@
 /**
 	GIIRCd
 	IRC server
-	$Id: GIIRCd.uc,v 1.3 2003/09/08 14:05:53 elmuerte Exp $
+	$Id: GIIRCd.uc,v 1.4 2003/09/08 16:26:36 elmuerte Exp $
 */
 class GIIRCd extends UnGatewayInterface;
 
@@ -55,14 +55,14 @@ function bool CheckNickName(GCIRC client, string RequestedName)
 	local int i;
 	if (RequestedName != FixName(RequestedName))
 	{
-		Client.SendRaw(RequestedName@":ERR_ERRONEUSNICKNAME", "432");
+		Client.SendIRC(RequestedName@":ERR_ERRONEUSNICKNAME", "432");
 		return false;
 	}
 	for (i = 0; i < IRCUsers.length; i++)
 	{
 		if (RequestedName != IRCUsers[i].Nick)
 		{
-			Client.SendRaw(RequestedName@":ERR_NICKNAMEINUSE", "433");
+			Client.SendIRC(RequestedName@":ERR_NICKNAMEINUSE", "433");
 			return false;
 		}
 	}	
