@@ -8,7 +8,7 @@
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
 
-	<!-- $Id: GAppDebug.uc,v 1.16 2004/04/13 16:04:39 elmuerte Exp $ -->
+	<!-- $Id: GAppDebug.uc,v 1.17 2004/04/14 15:34:32 elmuerte Exp $ -->
 *******************************************************************************/
 class GAppDebug extends UnGatewayApplication;
 
@@ -65,8 +65,8 @@ function execConsole(UnGatewayClient client, array<string> cmd)
 
 defaultproperties
 {
-	innerCVSversion="$Id: GAppDebug.uc,v 1.16 2004/04/13 16:04:39 elmuerte Exp $"
+	innerCVSversion="$Id: GAppDebug.uc,v 1.17 2004/04/14 15:34:32 elmuerte Exp $"
 	Commands[0]=(Name="echo",Help="Returns it's first argumentÿUsage: echo \"some text\"")
 	Commands[1]=(Name="test",Help="Various tests")
-	Commands[2]=(Name="console",Help="Execute a console command")
+	Commands[2]=(Name="console",Help="Execute a console command",Permission="Xc")
 }
