@@ -1,7 +1,7 @@
 /**
 	UnGatewayClient
 	client for TCP based services linked in the Gateway system
-	$Id: UnGatewayClient.uc,v 1.7 2003/09/27 15:13:08 elmuerte Exp $
+	$Id: UnGatewayClient.uc,v 1.8 2003/10/25 15:49:13 elmuerte Exp $
 */
 class UnGatewayClient extends TCPLink abstract config;
 
@@ -48,6 +48,7 @@ event Closed()
 /** don't override, use the delegate */
 event ReceivedLine( string Line )
 {
+/*
 	local string x, tmp;
 	local int i;
 	while (line != "")
@@ -76,6 +77,12 @@ event ReceivedLine( string Line )
 			interface.gateway.Logf("ReceivedLine:"@tmp, Name, interface.gateway.LOG_DEBUG);	
 			OnReceiveLine(tmp);
 		}
+	}
+	*/
+	if (Line != "")
+	{
+		interface.gateway.Logf("ReceivedLine:"@Line, Name, interface.gateway.LOG_DEBUG);	
+		OnReceiveLine(Line);
 	}
 }
 
