@@ -7,12 +7,15 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GAppDefault.uc,v 1.2 2004/04/08 19:43:30 elmuerte Exp $ -->
+	<!-- $Id: GAppDefault.uc,v 1.3 2004/04/13 16:04:39 elmuerte Exp $ -->
 *******************************************************************************/
 class GAppDefault extends UnGatewayApplication;
 
 /** the substring to convert to a newline */
 var localized string HelpNewline;
+
+var localized string msgHelpUsage, msgIsAlias, msgNoHelp, msgNoSuchCommand,
+	msgListUsage, msgLCommands, msgLPort, msgLClients, msgLUsername, msgLAddress;
 
 function bool ExecCmd(UnGatewayClient client, array<string> cmd)
 {
@@ -33,16 +36,16 @@ function execHelp(UnGatewayClient client, array<string> cmd)
 	local int i, j;
 	local array<string> HelpInfo;
 
-	if (cmd.length != 1)
+	if (cmd.length == 0)
 	{
-		client.outputError("Usage: help <command>");
+		client.outputError(msgHelpUsage);
 		return;
 	}
 	for (i = 0; i < CmdAliases.length; i++)
 	{
 		if (CmdAliases[i].Alias ~= cmd[0])
 		{
-			client.output(cmd[0]@"is an alias for:"@CmdAliases[i].command);
+			client.output(repl(repl(msgIsAlias, "%alias", cmd[0]), "%cmd", CmdAliases[i].command));
 			return;
 		}
 	}
@@ -59,12 +62,12 @@ function execHelp(UnGatewayClient client, array<string> cmd)
 				}
 			}
 			else {
-				client.outputError("No help available for"@cmd[0]);
+				client.outputError(repl(msgNoHelp, "%s", cmd[0]));
 			}
 			return;
 		}
 	}
-	client.outputError("No such command:"@cmd[0]);
+	client.outputError(repl(msgNoSuchCommand, "%s", cmd[0]));
 }
 
 function execList(UnGatewayClient client, array<string> cmd)
@@ -75,7 +78,7 @@ function execList(UnGatewayClient client, array<string> cmd)
 
 	if (cmd.length != 1)
 	{
-		client.outputError("Usage: list <cmd|app|if|client>");
+		client.outputError(msgListUsage);
 		return;
 	}
 
@@ -102,7 +105,7 @@ function execList(UnGatewayClient client, array<string> cmd)
 			if (i > 0) client.output("");
 			client.output(Applications[i].Name);
 			client.output("    "$Applications[i].innerCVSversion);
-			client.output("    Commands:"@Applications[i].Commands.length);
+			client.output("    "$msgLCommands$":"@Applications[i].Commands.length);
 		}
 	}
 	else if (cmd[0] ~= "if")
@@ -112,8 +115,8 @@ function execList(UnGatewayClient client, array<string> cmd)
 			if (i > 0) client.output("");
 			client.output(Interfaces[i].Ident@Interfaces[i].Name);
 			client.output("    "$Interfaces[i].CVSversion);
-			client.output("    Port:"@Interfaces[i].iListenPort);
-			client.output("    Clients:"@Interfaces[i].clientCount);
+			client.output("    "$msgLPort$":"@Interfaces[i].iListenPort);
+			client.output("    "$msgLClients$":"@Interfaces[i].clientCount);
 		}
 	}
 	else if (cmd[0] ~= "client")
@@ -123,18 +126,29 @@ function execList(UnGatewayClient client, array<string> cmd)
 			if (i > 0) client.output("");
 			client.output(uc.Name);
 			client.output("    "$uc.CVSversion);
-			client.output("    Username:"@uc.sUsername);
-			client.output("    Address:"@uc.ClientAddress);
+			client.output("    "$msgLUsername$":"@uc.sUsername);
+			client.output("    "$msgLAddress$":"@uc.ClientAddress);
 		}
 	}
-	else client.outputError("Usage: list <cmd|app|if|client>");
+	else client.outputError(msgListUsage);
 }
 
 defaultproperties
 {
-	innerCVSversion="$Id: GAppDefault.uc,v 1.2 2004/04/08 19:43:30 elmuerte Exp $"
+	innerCVSversion="$Id: GAppDefault.uc,v 1.3 2004/04/13 16:04:39 elmuerte Exp $"
 	HelpNewline="ÿ"
 	Commands[0]=(Name="help",Help="Show help about commandsÿUsage: help <command>")
 	Commands[1]=(Name="list",Help="Show various lists.\ncmd	show registered commandsÿapp	show loaded applicationsÿif	show loaded interfacesÿclient	show connected clients")
 	Commands[2]=(Name="quit",Help="Logout")
+
+	msgHelpUsage="Usage: help <command>"
+	msgIsAlias="%alias is an alias for: %cmd"
+	msgNoHelp="No help available for %s"
+	msgNoSuchCommand="No such command %s"
+	msgListUsage="Usage: list <cmd|app|if|client>"
+	msgLCommands="Commands"
+	msgLPort="Port"
+	msgLClients="Clients"
+	msgLUsername="Username"
+	msgLAddress="Address"
 }

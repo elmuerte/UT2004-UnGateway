@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: Cron.uc,v 1.3 2004/04/12 19:32:39 elmuerte Exp $ -->
+	<!-- $Id: Cron.uc,v 1.4 2004/04/13 16:04:39 elmuerte Exp $ -->
 *******************************************************************************/
 
 class Cron extends Info config;
@@ -64,6 +64,8 @@ var protected GatewayDaemon Daemon;
 var() config string DummyClientClass;
 /** our dummy client we spawn to handle the command results */
 var protected UnGatewayClient DummyClient;
+
+var localized string msgNone, msgDelay, msgTime;
 
 /**
 	this function must be called after the cron daemon has been created.
@@ -223,17 +225,17 @@ static function string TypeToString(ECronType type)
 {
 	switch (type)
 	{
-		case EC_Delay:		return "delay";
-		case EC_Time:		return "time";
+		case EC_Delay:		return default.msgDelay;
+		case EC_Time:		return default.msgTime;
 	}
-	return "none";
+	return default.msgNone;
 }
 
 /** return the enum value of the string representation */
 static function ECronType StringToType(string type)
 {
-	if (type ~= "delay") return EC_Delay;
-	if (type ~= "time") return EC_Time;
+	if (type ~= default.msgDelay) return EC_Delay;
+	if (type ~= default.msgTime) return EC_Time;
 	return EC_None;
 }
 
@@ -252,4 +254,7 @@ static function ECronType getCronType(int i)
 defaultProperties
 {
 	DummyClientClass="UnGateway.CronClient"
+	msgNone="none"
+	msgDelay="delay"
+	msgTime="time"
 }

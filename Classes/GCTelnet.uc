@@ -10,7 +10,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCTelnet.uc,v 1.17 2004/04/12 13:38:15 elmuerte Exp $	-->
+	<!-- $Id: GCTelnet.uc,v 1.18 2004/04/13 16:04:39 elmuerte Exp $	-->
 *******************************************************************************/
 class GCTelnet extends UnGatewayClient;
 
@@ -93,7 +93,11 @@ const C_DEL			= 127;
 /** true -> echo input */
 var bool bEcho;
 /** command promp */
-var string CommandPrompt;
+var(Config) config string CommandPrompt;
+/** Show the message of the day on login */
+var(Config) config bool bShowMotd;
+/** Message of the Day */
+var(Config) config array<string> MOTD;
 /** maximum number of login tries before the connection will be closed */
 var(Config) config int iMaxLogin;
 /** initial delay before printing login request */
@@ -749,11 +753,19 @@ function DisplayCommandHistory(int offset)
 /** display the issue message */
 function IssueMessage()
 {
+	local int i;
 	SendLine();
 	SendLine("UnrealEngine2/"$Level.EngineVersion@Interface.gateway.Ident@Interface.Ident@Interface.gateway.ComputerName@Interface.Gateway.CreationTime);
 	if (Interface.gateway.CVSversion != "") SendLine(Interface.gateway.CVSversion);
 	if (Interface.CVSversion != "") SendLine(Interface.CVSversion);
 	if (CVSversion != "") SendLine(CVSversion);
+	if (bShowMotd)
+	{
+		for (i = 0; i < MOTD.length; i++)
+		{
+			SendLine(MOTD[i]);
+		}
+	}
 	SendLine();
 }
 
@@ -1054,7 +1066,7 @@ function outputError(string errormsg)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.17 2004/04/12 13:38:15 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.18 2004/04/13 16:04:39 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0
@@ -1067,5 +1079,27 @@ defaultproperties
 	msgLoginFailed="Login failed!"
 	msgTooManuLogins="Too many login tries, goodbye!"
 	msgUnknownCommand="Unknown command: %command%"
-	msgPagerMore="pager: %begin% - %end% (%percent%%)";
+	msgPagerMore="pager: %begin% - %end% (%percent%%)"
+
+	bShowMotd=true
+	MOTD[0]=""
+	MOTD[1]="[8m                               [0;10m[1m_a[0;10m[1mm_[0;10m[1m_d****[0;10m[1m0[0;10m[1m,[0;10m[1m_[0;10m[1ma_[0;10m[8m    [0;10m[1ms[0;10m[8m                 [0;10m"
+	MOTD[2]="[8m                          [0;10m[1m_a[0;10mq[1mD[0;10m[1m5MQ[0;10m[1mx%x]][0;10m[1mMWZ44Gd[0;10m3[1m|![0;10m[1mm[0;10m[1m,[0;10m[8m [0;10m?[1m\[0;10m[1m_[0;10m,[8m             [0;10m"
+	MOTD[3]="[8m                       [0;10m[1m__#dH![0;10m[1mq[0;10m[1mx]x[0;10m[1mMm[0;10m[1m%[0;10m[1mQNX[0;10m[1m=[0;10m[1mGXC[0;10m[1mqay*![0;10m[1mS[0;10m4[1mRy[0;10m[8m [0;10m?4[1mn[0;10m[1ms[0;10m[8m           [0;10m"
+	MOTD[4]="[8m                    [0;10m_[1mp[0;10m[1m#W##UO[0;10mq[1m%[0;10m[1mMQ4QMMd[0;10m#[1mSQ[0;10m[1mnd##]+[0;10m|[1m=[0;10mU[1m=[0;10m3[1m?n[0;10m[8m  [0;10mN[1mdn[0;10m[8m          [0;10m"
+	MOTD[5]="[8m                  [0;10m[1m_Jg#KWWWN&zy[0;10mH[1mH[0;10mXQQQ4[1may#H4WC[0;10m[1m\[0;10mXX44XO3*[1mL[0;10m[8m  [0;10m[1m*Gn[0;10m[1m,[0;10m[8m        [0;10m"
+	MOTD[6]="[8m                 [0;10m[1mJm#K#QWWW44WX}[0;10mOX3OOC[1m##Z2%G%[0;10md2nxx%3[1m:[0;10m3[1m?[0;10m[1ml[0;10m[8m [0;10mJ[1mQWn[0;10m[8m        [0;10m"
+	MOTD[7]="[8m               [0;10m[1m_4WQ?O[0;10m[8mN[0;10m+[1mm[0;10m[1m*WWWWZ[0;10m[1m1[0;10mO3][1m:[0;10m]%[1m0#KWWm3:[0;10m3X]q][1m=[0;10m[1m:[0;10m]=[1m1[0;10m[8m  [0;10m[1mWWX[0;10m[1m<[0;10m[8m       [0;10m"
+	MOTD[8]="[8m           .  [0;10m[1m_G@\[0;10mCq[1myw[0;10m4C[1mWW&ZW3[0;10m[1m1[0;10m[1m:[0;10m3]%[1m==[0;10m[1m#4W8Z8%[0;10mx3[1m:[0;10m[1m==[0;10m|[1m=[0;10m+==[1mr[0;10m[8m  [0;10m[1m#U3[0;10m[1mb[0;10m[8m       [0;10m"
+	MOTD[9]="[8m         [0;10m[1m_d[0;10m`[8m [0;10m[1m_GP~[0;10mq[1m|[0;10mN[1mg[0;10m[1m|[0;10mXH[1m#d$Qm2[0;10m[1m1[0;10m%]v[1m:[0;10mox[1m#4%[0;10m[1mB[0;10m[1mju%[0;10mx][1m==[0;10mx|[1m=[0;10m=;q[1ml[0;10m[8m [0;10m[1m_Z[0;10m[1m8[0;10m[1m-~[0;10m[8m       [0;10m"
+	MOTD[10]="[8m      [0;10m[1m_[0;10m[8m [0;10m[1mdC[0;10m[1m<[0;10m[8m  [0;10m[1mVZ[0;10m+d[1mQ[0;10m#mXXXc[1m#[0;10m3[1mcu[0;10m[1m&N[0;10m[1m)[0;10m[1m=[0;10m%+%[1m=[0;10m%[1mWGxoGu][0;10m|]+====:;[1md[0;10m[8m  [0;10m[1mJ'[0;10m[1m`[0;10m[8m         [0;10m"
+	MOTD[11]="[8m      [0;10m[1m4#9[0;10md[8m  [0;10m[1mj?[0;10mnOXXXO3V3[1m=[0;10m[1mBn[0;10m[1mMm[0;10m[1m]x[0;10m[1m1[0;10mxx[1m=[0;10m][1m=[0;10m;[1mW2W3yu%[0;10m=[1m=[0;10m=[1mv[0;10m:;:;[1mJ[0;10m[1m`[0;10m[8m  [0;10m[1m^[0;10m[8m           [0;10m"
+	MOTD[12]="[8m      [0;10m4[1mX[0;10m[1mM[0;10m[1mx[0;10m[8m  [0;10m[1m?[0;10m[1mx[0;10mX3O33O33[1m:[0;10mx[1m&[0;10mH[1m2%]%[0;10m[1m{[0;10mx=+[1m==[0;10m][1mWA%Z23][0;10m==[1m`[0;10m=;:[1myW[0;10m`[8m               [0;10m"
+	MOTD[13]="[8m      [0;10mJ[1mWk[0;10m[1mD[0;10m[8m  [0;10m[1mj[0;10m[1me[0;10mxx[1m:[0;10m]3[1m:[0;10m?4[1m::W[0;10m[1mWW[0;10m#[1muu[0;10m[1mi[0;10mo]=[1m=[0;10m=;[1m#Gpx%2%[0;10m;;=[1mqp0[0;10m7`[8m                [0;10m"
+	MOTD[14]="[8m       [0;10m[1m?\"x[0;10m[1ms[0;10m[8m N[0;10m[1mL[0;10m:=?x39[1m+[0;10mvGq[1mWudX24x[0;10mq[1myaadH53%3X2x*HVt[0;10md\"[8m                  [0;10m"
+	MOTD[15]="[8m        [0;10m[1m`[0;10mJ[1mX[0;10m[1m,[0;10m[8m [0;10mJ[1ms[0;10m;+]vxxJ[1m*9433%33ddG333![0;10m[1m@[0;10m[1m3]%x[0;10m[1mM[0;10m[1m3![0;10m[1mW[0;10mP`[8m                    [0;10m"
+	MOTD[16]="[8m         [0;10m[1m [0;10mJ[1mJ,[0;10m[8m [0;10m?[1mn[0;10m[1m;=[0;10m++?|=:9|[1mMN?[0;10m[1mu%m3X[0;10m[1mM;[0;10m[1m~[0;10m=:[1m`W[0;10m4[1m*[0;10mx{[1m`[0;10m[8m                      [0;10m"
+	MOTD[17]="[8m           [0;10m?S[1m_[0;10m[8m  [0;10mJ[1m_[0;10m[1ms[0;10m=+[1m==[0;10m===::|;+*[1m~[0;10m[1m~\_y[0;10m[1m_[0;10maq[1mm[0;10m/^[8m                         [0;10m"
+	MOTD[18]="[8m              [0;10m[1m~'[0;10m_[8m [0;10m?[1m^[0;10m[1m`my[0;10m;;;;;;;;;;|[1ma[0;10m[1mm[0;10m:[1m?~[0;10m[8mt                            [0;10m"
+	MOTD[19]="[8m                       :[0;10m?[1m^\"!!\"\"^[0;10m[8m                                    [0;10m"
 }

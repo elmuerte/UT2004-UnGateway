@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GatewayDaemon.uc,v 1.7 2004/04/07 08:39:37 elmuerte Exp $ -->
+	<!-- $Id: GatewayDaemon.uc,v 1.8 2004/04/13 16:04:39 elmuerte Exp $ -->
 *******************************************************************************/
 class GatewayDaemon extends Info config;
 
@@ -40,6 +40,10 @@ struct CommandReference
 	var string Command;
 	/** true if it has a help string/manual page */
 	var bool bHasHelp;
+	/** security level required for this command */
+	var byte Level;
+	/** permission required for this command */
+	var string Permission;
 };
 /** lookup table to find the app that has the command */
 var array<CommandReference> CmdLookupTable;
@@ -63,6 +67,8 @@ var const string CVSversion;
 var string CreationTime;
 /** host information */
 var string hostname, hostaddress, computername;
+
+var localized string msgUnauthorized;
 
 /** Spawn all classes*/
 event PreBeginPlay()
@@ -157,6 +163,10 @@ function bool ExecCommand(UnGatewayClient client, array<string> cmd, optional bo
 	{
 		if (CmdLookupTable[i].Command ~= cmd[0]) // case insensitive
 		{
+			if (!Auth.HasPermission(client, CmdLookupTable[i].Level, CmdLookupTable[i].Permission))
+			{
+				client.outputError(msgUnauthorized);
+			}
 			return CmdLookupTable[i].App.ExecCmd(client, cmd);
 		}
 	}
@@ -225,5 +235,6 @@ defaultproperties
 
 	AuthClass="UnGateway.GAuthSystem"
 	Ident="UnGateway/100"
-	CVSversion="$Id: GatewayDaemon.uc,v 1.7 2004/04/07 08:39:37 elmuerte Exp $"
+	CVSversion="$Id: GatewayDaemon.uc,v 1.8 2004/04/13 16:04:39 elmuerte Exp $"
+	msgUnauthorized="You are not authorized to use this command"
 }

@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UnGatewayApplication.uc,v 1.8 2004/04/12 13:38:15 elmuerte Exp $ -->
+	<!-- $Id: UnGatewayApplication.uc,v 1.9 2004/04/13 16:04:39 elmuerte Exp $ -->
 *******************************************************************************/
 class UnGatewayApplication extends Object within GatewayDaemon abstract;
 
@@ -19,6 +19,10 @@ struct CommandInfo
 {
 	var string Name;
 	var localized string Help;
+	/** security level required for this command */
+	var byte Level;
+	/** permission required for this command */
+	var string Permission;
 };
 /** commands and help */
 var array<CommandInfo> Commands;
@@ -35,6 +39,8 @@ function Create()
 		CmdLookupTable[CmdLookupTable.length-1].App = Self;
 		CmdLookupTable[CmdLookupTable.length-1].Command = Commands[i].Name;
 		CmdLookupTable[CmdLookupTable.length-1].bHasHelp = (Commands[i].Help != "");
+		CmdLookupTable[CmdLookupTable.length-1].Level = Commands[i].Level;
+		CmdLookupTable[CmdLookupTable.length-1].Permission = Commands[i].Permission;
 	}
 }
 
@@ -136,5 +142,5 @@ static function string quotefix(string in, optional bool bUnfix)
 
 defaultproperties
 {
-	innerCVSversion="$Id: UnGatewayApplication.uc,v 1.8 2004/04/12 13:38:15 elmuerte Exp $"
+	innerCVSversion="$Id: UnGatewayApplication.uc,v 1.9 2004/04/13 16:04:39 elmuerte Exp $"
 }

@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GAuthSystem.uc,v 1.6 2004/04/07 08:39:37 elmuerte Exp $ -->
+	<!-- $Id: GAuthSystem.uc,v 1.7 2004/04/13 16:04:39 elmuerte Exp $ -->
 *******************************************************************************/
 class GAuthSystem extends UnGatewayAuth;
 
@@ -40,11 +40,12 @@ function bool Logout(UnGatewayClient client)
 function bool HasPermission(UnGatewayClient client, optional int seclevel, optional string perm)
 {
 	local xAdminUser xau;
+	if ((seclevel == 0) && (perm == "")) return true;
 	xau = Level.Game.AccessControl.GetLoggedAdmin(client.PlayerController);
 	return Level.Game.AccessControl.CanPerform(client.PlayerController, perm) && (xau.MaxSecLevel() >= seclevel);
 }
 
 defaultproperties
 {
-	CVSversion="$Id: GAuthSystem.uc,v 1.6 2004/04/07 08:39:37 elmuerte Exp $"
+	CVSversion="$Id: GAuthSystem.uc,v 1.7 2004/04/13 16:04:39 elmuerte Exp $"
 }

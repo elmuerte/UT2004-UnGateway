@@ -8,7 +8,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GAppCron.uc,v 1.2 2004/04/12 13:38:15 elmuerte Exp $ -->
+	<!-- $Id: GAppCron.uc,v 1.3 2004/04/13 16:04:39 elmuerte Exp $ -->
 *******************************************************************************/
 
 class GAppCron extends UnGatewayApplication config;
@@ -20,6 +20,11 @@ class GAppCron extends UnGatewayApplication config;
 var protected Cron Cron;
 /** the cron class to spawn */
 var() globalconfig string CronClass;
+
+var localized string msgNoDaemon, msgDisabled, msgCronAddUsage, msgValidTypes,
+	msgInvalidFormat, msgCronAdded, msgAddedBy, msgCronDelUsage, msgInvalidIndex,
+	msgCronRemoved, msgCronDisableUsage, msgEntryDisabled, msgCronEnableUsage,
+	msgCronEnabled;
 
 function Create()
 {
@@ -59,18 +64,15 @@ function bool ExecCmd(UnGatewayClient client, array<string> cmd)
 function execList(UnGatewayClient client, array<string> cmd)
 {
 	local int i;
-	local string dis;
 	if (Cron == none)
 	{
-		client.outputError("No cron daemon found");
+		client.outputError(msgNoDaemon);
 		return;
 	}
 	for (i = 0; i < cron.Crontab.length; i++)
 	{
-		if (cron.Crontab[i].bDisabled) dis = " "$"disabled";
-		else dis = "";
 		client.output(PadRight(i, 3)@quotefix(cron.Crontab[i].command, true));
-		client.output("   "@cron.TypeToString(cron.Crontab[i].type)@cron.Crontab[i].time$dis);
+		client.output("   "@cron.TypeToString(cron.Crontab[i].type)@cron.Crontab[i].time$iif(cron.Crontab[i].bDisabled,msgDisabled,""));
 		if (cron.Crontab[i].desc != "") client.output("   "@quotefix(cron.Crontab[i].desc, true));
 	}
 }
@@ -82,12 +84,12 @@ function execAdd(UnGatewayClient client, array<string> cmd)
 	local string tmp;
 	if (Cron == none)
 	{
-		client.outputError("No cron daemon found");
+		client.outputError(msgNoDaemon);
 		return;
 	}
 	if (cmd.length < 3)
 	{
-		client.outputError("Usage: cronadd <type> <time config> <command ...>");
+		client.outputError(msgCronAddUsage);
 		return;
 	}
 	ct = cron.StringToType(cmd[0]);
@@ -100,12 +102,12 @@ function execAdd(UnGatewayClient client, array<string> cmd)
 			if (tmp != "") tmp $= ", ";
 			tmp $= cron.TypeToString(ct);
 		}
-		client.outputError("Invalid type, allowed values are:"@tmp);
+		client.outputError(repl(msgValidTypes, "%s", tmp));
 		return;
 	}
 	if (!cron.validTimeFormat(ct, cmd[1]))
 	{
-		client.outputError(cmd[1]@"is not a valid time format for this type.");
+		client.outputError(repl(msgInvalidFormat, "%s", cmd[1]));
 	}
 	tmp = cmd[1];
 	cmd.remove(i, 2); // remove the first two entries
@@ -113,11 +115,11 @@ function execAdd(UnGatewayClient client, array<string> cmd)
 	cron.Crontab[cron.Crontab.length-1].command = quotefix(Join(cmd, " ", "\""));
 	cron.Crontab[cron.Crontab.length-1].time = tmp;
 	cron.Crontab[cron.Crontab.length-1].type = ct;
-	cron.Crontab[cron.Crontab.length-1].desc = quotefix("added by"@client.sUsername);
+	cron.Crontab[cron.Crontab.length-1].desc = quotefix(repl(msgAddedBy, "%s", client.sUsername));
 	cron.Crontab[cron.Crontab.length-1].bDisabled = false;
 	cron.CronTimeConfig.Length = cron.CronTimeConfig.Length+1;
 	cron.CreateTimeEntry(cron.CronTimeConfig.Length-1);
-	client.output("Crontab entry #"$(cron.Crontab.length-1)@"added");
+	client.output(repl(msgCronAdded, "%s", (cron.Crontab.length-1)));
 	cron.SaveConfig();
 }
 
@@ -126,22 +128,22 @@ function execDel(UnGatewayClient client, array<string> cmd)
 	local int i;
 	if (Cron == none)
 	{
-		client.outputError("No cron daemon found");
+		client.outputError(msgNoDaemon);
 		return;
 	}
 	if ((cmd.length < 1) || !intval(cmd[0], i))
 	{
-		client.outputError("Usage: crondel <index>");
+		client.outputError(msgCronDelUsage);
 		return;
 	}
 	if ((i >= cron.Crontab.length) || (i < 0))
 	{
-		client.outputError("Invalid index"@i);
+		client.outputError(repl(msgInvalidIndex, "%s", i));
 		return;
 	}
 	cron.Crontab.Remove(i, 1);
 	cron.CronTimeConfig.Remove(i, 1);
-	client.output("Crontab entry #"$i@"removed");
+	client.output(repl(msgCronRemoved, "%s", i));
 	cron.SaveConfig();
 }
 
@@ -150,23 +152,23 @@ function execDisable(UnGatewayClient client, array<string> cmd)
 	local int i, n;
 	if (Cron == none)
 	{
-		client.outputError("No cron daemon found");
+		client.outputError(msgNoDaemon);
 		return;
 	}
 	if (cmd.length < 1)
 	{
-		client.outputError("Usage: crondisable <index>");
+		client.outputError(msgCronDisableUsage);
 		return;
 	}
 	for (i = 0; i < cmd.length; i++)
 	{
 		if (!intval(cmd[i], n) || (n >= cron.Crontab.length) || (n < 0))
 		{
-			client.outputError("Invalid index"@n);
+			client.outputError(repl(msgInvalidIndex, "%s", n));
 			continue;
 		}
 		cron.Crontab[i].bDisabled = true;
-		client.output("Crontab entry #"$n@"disabled");
+		client.output(repl(msgEntryDisabled, "%s", n));
 	}
 	cron.SaveConfig();
 }
@@ -176,23 +178,23 @@ function execEnable(UnGatewayClient client, array<string> cmd)
 	local int i, n;
 	if (Cron == none)
 	{
-		client.outputError("No cron daemon found");
+		client.outputError(msgNoDaemon);
 		return;
 	}
 	if (cmd.length < 1)
 	{
-		client.outputError("Usage: crondisable <index>");
+		client.outputError(msgCronEnableUsage);
 		return;
 	}
 	for (i = 0; i < cmd.length; i++)
 	{
 		if (!intval(cmd[i], n) || (n >= cron.Crontab.length) || (n < 0))
 		{
-			client.outputError("Invalid index"@n);
+			client.outputError(repl(msgInvalidIndex, "%s", n));
 			continue;
 		}
 		cron.Crontab[i].bDisabled = false;
-		client.output("Crontab entry #"$n@"enabled");
+		client.output(repl(msgCronEnabled, "%s", n));
 	}
 	cron.SaveConfig();
 }
@@ -200,9 +202,24 @@ function execEnable(UnGatewayClient client, array<string> cmd)
 defaultproperties
 {
 	CronClass="UnGateway.Cron"
-	Commands[0]=(Name="cronlist",Help="List the cron table")
-	Commands[1]=(Name="cronadd",Help="Add a new item to the cron tableÿUsage: cronadd <type> <time config> <command ...>")
-	Commands[2]=(Name="crondel",Help="Delete a entry in the cron tableÿUsage: crondel <index>")
-	Commands[3]=(Name="crondisable",Help="Disable a cron table entryÿUsage: crondisable <index> ...")
-	Commands[4]=(Name="cronenable",Help="Enable a cron table entryÿUsage: cronenable <index> ...")
+	Commands[0]=(Name="cronlist",Help="List the cron table",Level=254)
+	Commands[1]=(Name="cronadd",Help="Add a new item to the cron tableÿUsage: cronadd <type> <time config> <command ...>",Level=255)
+	Commands[2]=(Name="crondel",Help="Delete a entry in the cron tableÿUsage: crondel <index>",Level=255)
+	Commands[3]=(Name="crondisable",Help="Disable a cron table entryÿUsage: crondisable <index> ...",Level=255)
+	Commands[4]=(Name="cronenable",Help="Enable a cron table entryÿUsage: cronenable <index> ...",Level=255)
+
+	msgNoDaemon="No cron daemon found"
+	msgDisabled="disabled"
+	msgCronAddUsage="Usage: cronadd <type> <time config> <command ...>"
+	msgValidTypes="Invalid type, allowed values are: %s"
+	msgInvalidFormat="%s is not a valid time format for this type."
+	msgCronAdded="Crontab entry #%s added"
+	msgAddedBy="added by %s"
+	msgCronDelUsage="Usage: crondel <index>"
+	msgInvalidIndex="Invalid index %s"
+	msgCronRemoved="Crontab entry #%s removed"
+	msgCronDisableUsage="Usage: crondisable <index>"
+	msgEntryDisabled="Crontab entry #%s disabled"
+	msgCronEnableUsage="Usage: cronenable <index>"
+	msgCronEnabled="Crontab entry #%s enabled"
 }

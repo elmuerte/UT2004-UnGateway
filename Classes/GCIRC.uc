@@ -8,7 +8,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCIRC.uc,v 1.14 2004/04/07 21:16:48 elmuerte Exp $ -->
+	<!-- $Id: GCIRC.uc,v 1.15 2004/04/13 16:04:39 elmuerte Exp $ -->
 *******************************************************************************/
 class GCIRC extends UnGatewayClient;
 
@@ -624,7 +624,7 @@ function ircExecLIST(optional string mask)
 defaultproperties
 {
 	ClientID=-1
-	CVSversion="$Id: GCIRC.uc,v 1.14 2004/04/07 21:16:48 elmuerte Exp $"
+	CVSversion="$Id: GCIRC.uc,v 1.15 2004/04/13 16:04:39 elmuerte Exp $"
 	bShowMotd=true
 	MaxChannels=2
 	bAllowCreateChannel=false
@@ -657,10 +657,10 @@ defaultproperties
 	MOTD[25]="   Welcome to %hostname%"
 	MOTD[26]="   Available channels are: %channels%"
 	MOTD[27]=""
-	MOTD[28]="   This server uses the UnGateway system maybe by Michiel 'El Muerte' Hendriks."
+	MOTD[28]="   This server uses the UnGateway system mabe by Michiel 'El Muerte' Hendriks."
 	MOTD[29]="   This IRC server is just part of an even larger system."
 	MOTD[30]=""
 	MOTD[31]="   For more information about UnGateway visit the homepage:"
-	MOTD[32]="       http://ungateway.drunksnipers.com"
+	MOTD[32]="       http://ungateway.elmuerte.com"
 	MOTD[33]=""
 }
