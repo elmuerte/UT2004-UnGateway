@@ -5,10 +5,10 @@
 	Authors:	Michiel 'El Muerte' Hendriks &lt;elmuerte@drunksnipers.com&gt;	<br />
 																				<br />
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
-	Released under the Lesser Open Unreal Mod License							<br />
-	http://wiki.beyondunreal.com/wiki/LesserOpenUnrealModLicense				<br />
+	Released under the Open Unreal Mod License									<br />
+	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
 
-	<!-- $Id: GAppDebug.uc,v 1.10 2004/04/06 18:58:11 elmuerte Exp $ -->
+	<!-- $Id: GAppDebug.uc,v 1.11 2004/04/06 19:12:00 elmuerte Exp $ -->
 *******************************************************************************/
 class GAppDebug extends UnGatewayApplication;
 
@@ -119,7 +119,7 @@ function execTest(UnGatewayClient client, array<string> cmd)
 
 defaultproperties
 {
-	innerCVSversion="$Id: GAppDebug.uc,v 1.10 2004/04/06 18:58:11 elmuerte Exp $"
+	innerCVSversion="$Id: GAppDebug.uc,v 1.11 2004/04/06 19:12:00 elmuerte Exp $"
 	Commands[0]=(Name="echo",Help="Returns it's first argument||Usage: echo \"some text\"")
 	Commands[1]=(Name="help",Help="Show help about commands|This should be a built-in command||Usage: help <command>")
 	Commands[2]=(Name="list",Help="Show various lists.|cmd	show registered commands|app	show loaded applications|if	show loaded interfaces|client	show connected clients")

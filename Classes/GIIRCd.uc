@@ -5,9 +5,9 @@
 	Authors:	Michiel 'El Muerte' Hendriks &lt;elmuerte@drunksnipers.com&gt;	<br />
 																				<br />
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
-	Released under the Lesser Open Unreal Mod License							<br />
-	http://wiki.beyondunreal.com/wiki/LesserOpenUnrealModLicense				<br />
-	<!-- $Id: GIIRCd.uc,v 1.12 2004/04/06 18:58:11 elmuerte Exp $ -->
+	Released under the Open Unreal Mod License									<br />
+	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
+	<!-- $Id: GIIRCd.uc,v 1.13 2004/04/06 19:12:00 elmuerte Exp $ -->
 *******************************************************************************/
 class GIIRCd extends UnGatewayInterface;
 
@@ -223,6 +223,6 @@ function BroadcastMessage(coerce string message, int id, optional GCIRC origin)
 defaultproperties
 {
 	Ident="IRC/100"
-	CVSversion="$Id: GIIRCd.uc,v 1.12 2004/04/06 18:58:11 elmuerte Exp $"
+	CVSversion="$Id: GIIRCd.uc,v 1.13 2004/04/06 19:12:00 elmuerte Exp $"
 	AcceptClass=class'UnGateway.GCIRC'
 }

@@ -5,9 +5,9 @@
 	Authors:	Michiel 'El Muerte' Hendriks &lt;elmuerte@drunksnipers.com&gt;	<br />
 																				<br />
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
-	Released under the Lesser Open Unreal Mod License							<br />
-	http://wiki.beyondunreal.com/wiki/LesserOpenUnrealModLicense				<br />
-	<!-- $Id: UnGatewayAuth.uc,v 1.3 2004/04/06 18:58:11 elmuerte Exp $ -->
+	Released under the Open Unreal Mod License									<br />
+	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
+	<!-- $Id: UnGatewayAuth.uc,v 1.4 2004/04/06 19:12:00 elmuerte Exp $ -->
 *******************************************************************************/
 class UnGatewayAuth extends Info abstract;
 
@@ -37,5 +37,5 @@ function bool Logout(UnGatewayClient interface)
 
 defaultproperties
 {
-	CVSversion="$Id: UnGatewayAuth.uc,v 1.3 2004/04/06 18:58:11 elmuerte Exp $"
+	CVSversion="$Id: UnGatewayAuth.uc,v 1.4 2004/04/06 19:12:00 elmuerte Exp $"
 }

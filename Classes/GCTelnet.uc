@@ -8,9 +8,9 @@
 	Authors:	Michiel 'El Muerte' Hendriks &lt;elmuerte@drunksnipers.com&gt;	<br />
 																				<br />
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
-	Released under the Lesser Open Unreal Mod License							<br />
-	http://wiki.beyondunreal.com/wiki/LesserOpenUnrealModLicense				<br />
-	<!-- $Id: GCTelnet.uc,v 1.11 2004/04/06 18:58:11 elmuerte Exp $	-->
+	Released under the Open Unreal Mod License									<br />
+	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
+	<!-- $Id: GCTelnet.uc,v 1.12 2004/04/06 19:12:00 elmuerte Exp $	-->
 *******************************************************************************/
 class GCTelnet extends UnGatewayClient;
 
@@ -1014,7 +1014,7 @@ function outputError(string errormsg)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.11 2004/04/06 18:58:11 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.12 2004/04/06 19:12:00 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0
