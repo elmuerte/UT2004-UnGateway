@@ -10,7 +10,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCTelnet.uc,v 1.25 2004/04/16 14:28:26 elmuerte Exp $	-->
+	<!-- $Id: GCTelnet.uc,v 1.26 2004/04/26 21:15:24 elmuerte Exp $	-->
 *******************************************************************************/
 /*
 	TODO:
@@ -994,7 +994,7 @@ state logged_in
 			PagerBuffer.length = 0;
 		}
 		if (!Interface.Gateway.ExecCommand(Self, cmd)) outputError(repl(msgUnknownCommand, "%command%", cmd[0]));
-		if (!IsInState('paged') && !IsInState('logout')) SendPrompt();
+		if (!IsInState('paged') && !IsInState('logout') && !IsInState('RequestedInput')) SendPrompt();
 	}
 
 	function TryLogout()
@@ -1238,6 +1238,24 @@ begin:
 	OnTabComplete=none;
 }
 
+state RequestedInput
+{
+	function procInput(coerce string input)
+	{
+		OnRequestInputResult(self, input);
+	}
+
+begin:
+	OnReceiveBinary=defReceiveInput;
+	OnReceiveLine=procInput;
+	OnEscapeCode=none;
+	OnCursorKey=none;
+	OnLogout=none;
+	OnTabComplete=none;
+	OnNewline=none;
+	OnMetaKey=none;
+}
+
 /**
 	send data to the client, if the pager is enabled it will automatically page
 	the data when there's more data than can fit on the screen
@@ -1360,6 +1378,21 @@ function SendChatPrompt(optional bool bNoBuffer)
 	}
 }
 
+function requestInput(UnGatewayApplication app, optional coerce string Prompt, optional bool bNoEcho)
+{
+	super.requestInput(app, prompt, becho);
+	if (prompt != "") SendText(prompt);
+	bEcho = !bNoEcho;
+	GotoState('RequestedInput');
+}
+
+function endRequestInput(UnGatewayApplication app)
+{
+	bEcho = true;
+	OnRequestInputResult = none;
+	GotoState('logged_in');
+}
+
 static function FillPlayInfo(PlayInfo PlayInfo)
 {
 	super.FillPlayInfo(PlayInfo);
@@ -1398,7 +1431,7 @@ static event string GetDescriptionText(string PropName)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.25 2004/04/16 14:28:26 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.26 2004/04/26 21:15:24 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0

@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UnGatewayClient.uc,v 1.17 2004/04/15 20:37:51 elmuerte Exp $ -->
+	<!-- $Id: UnGatewayClient.uc,v 1.18 2004/04/26 21:15:24 elmuerte Exp $ -->
 *******************************************************************************/
 class UnGatewayClient extends TCPLink abstract config;
 
@@ -41,6 +41,8 @@ delegate OnReceiveText(coerce string line);
 delegate OnLogout();
 /** called to complete the current inbuffer, e.g. tab completion */
 delegate OnTabComplete();
+/** called after receiving input in the request input state */
+delegate OnRequestInputResult(UnGatewayClient client, coerce string result);
 
 /** called after the interface received the event GainedChild */
 event Accepted()
@@ -136,6 +138,15 @@ function outputError(string errormsg, optional string ident, optional bool bDont
 /** will be called for chat messages */
 function outputChat(coerce string pname, coerce string message, optional name Type);
 
+/** request input from the client, called by an UnGatewayApplication, this can be used to get passwords */
+function requestInput(UnGatewayApplication app, optional coerce string Prompt, optional bool bNoEcho)
+{
+	OnRequestInputResult=app.RequestInputResult;
+}
+
+/** the application should call this function when it's done if requesting input */
+function endRequestInput(UnGatewayApplication app);
+
 /** split a string with quotes */
 function int AdvSplit(string input, string delim, out array<string> elm, optional string quoteChar)
 {
@@ -186,5 +197,5 @@ function int AdvSplit(string input, string delim, out array<string> elm, optiona
 defaultproperties
 {
 	PlayerControllerClass=class'UnGateway.UnGatewayPlayer'
-	CVSversion="$Id: UnGatewayClient.uc,v 1.17 2004/04/15 20:37:51 elmuerte Exp $"
+	CVSversion="$Id: UnGatewayClient.uc,v 1.18 2004/04/26 21:15:24 elmuerte Exp $"
 }

@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UnGatewayApplication.uc,v 1.10 2004/04/15 07:56:54 elmuerte Exp $ -->
+	<!-- $Id: UnGatewayApplication.uc,v 1.11 2004/04/26 21:15:24 elmuerte Exp $ -->
 *******************************************************************************/
 class UnGatewayApplication extends Object within GatewayDaemon abstract;
 
@@ -134,7 +134,10 @@ static function string quotefix(string in, optional bool bUnfix)
 	return repl(in, "\"", "\\\"");
 }
 
+/** this function will be assigned to the UnGatewayClient delegate when requesting input */
+function RequestInputResult(UnGatewayClient client, coerce string result);
+
 defaultproperties
 {
-	innerCVSversion="$Id: UnGatewayApplication.uc,v 1.10 2004/04/15 07:56:54 elmuerte Exp $"
+	innerCVSversion="$Id: UnGatewayApplication.uc,v 1.11 2004/04/26 21:15:24 elmuerte Exp $"
 }
