@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GatewayDaemon.uc,v 1.12 2004/05/08 17:43:39 elmuerte Exp $ -->
+	<!-- $Id: GatewayDaemon.uc,v 1.13 2004/05/09 18:43:43 elmuerte Exp $ -->
 *******************************************************************************/
 class GatewayDaemon extends Info config;
 
@@ -228,6 +228,26 @@ function bool CanClose(UnGatewayClient client)
 	return true;
 }
 
+/** should be called by the client when the client has logged in completely */
+function NotifyClientJoin(UnGatewayClient client)
+{
+	local int i;
+	for (i = 0; i < Interfaces.length; i++)
+	{
+		Interfaces[i].NotifyClientJoin(client);
+	}
+}
+
+/** should be called by the client when the client quits */
+function NotifyClientLeave(UnGatewayClient client)
+{
+	local int i;
+	for (i = 0; i < Interfaces.length; i++)
+	{
+		Interfaces[i].NotifyClientLeave(client);
+	}
+}
+
 static function FillPlayInfo(PlayInfo PlayInfo)
 {
 	super.FillPlayInfo(PlayInfo);
@@ -261,7 +281,7 @@ defaultproperties
 	LOG_DEBUG=128
 
 	Ident="UnGateway/102"
-	CVSversion="$Id: GatewayDaemon.uc,v 1.12 2004/05/08 17:43:39 elmuerte Exp $"
+	CVSversion="$Id: GatewayDaemon.uc,v 1.13 2004/05/09 18:43:43 elmuerte Exp $"
 	AuthClass="UnGateway.GAuthSystem"
 	msgUnauthorized="You are not authorized to use this command"
 

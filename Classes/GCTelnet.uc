@@ -10,7 +10,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCTelnet.uc,v 1.27 2004/05/08 21:49:32 elmuerte Exp $	-->
+	<!-- $Id: GCTelnet.uc,v 1.28 2004/05/09 18:43:43 elmuerte Exp $	-->
 *******************************************************************************/
 /*
 	TODO:
@@ -274,6 +274,7 @@ event Accepted()
 	{
 		sUsername = "anonymous";
 		IssueMessage();
+		Interface.gateway.NotifyClientJoin(self);
 		GotoState('logged_in');
 	}
 	else {
@@ -925,6 +926,7 @@ state login
 				PlayerController.SetName(sUsername);
 				if (bSaveHistory) LoadHistory();
 
+				Interface.gateway.NotifyClientJoin(self);
 				if (ChatMode == CM_Full) GotoState('FullChatMode');
 				else GotoState('logged_in');
 			}
@@ -1431,7 +1433,7 @@ static event string GetDescriptionText(string PropName)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.27 2004/05/08 21:49:32 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.28 2004/05/09 18:43:43 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0

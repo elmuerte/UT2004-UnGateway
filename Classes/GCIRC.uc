@@ -8,7 +8,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCIRC.uc,v 1.17 2004/05/08 21:49:32 elmuerte Exp $ -->
+	<!-- $Id: GCIRC.uc,v 1.18 2004/05/09 18:43:43 elmuerte Exp $ -->
 *******************************************************************************/
 class GCIRC extends UnGatewayClient;
 
@@ -61,7 +61,13 @@ function SendIRC(string data, coerce string code)
 	else nm = "*";
 	// :<server host> <code> <nickname> <additional data>
 	SendText(":"$interface.gateway.hostname@code@nm@data);
-	interface.gateway.Logf("[SendIRC] :"$interface.gateway.hostname@code@nm@data, Name, interface.gateway.LOG_DEBUG);
+	//interface.gateway.Logf("[SendIRC] :"$interface.gateway.hostname@code@nm@data, Name, interface.gateway.LOG_DEBUG);
+}
+
+function int SendText(coerce string Str)
+{
+	interface.gateway.Logf("[SendText]"@str, Name, interface.gateway.LOG_DEBUG);
+	return super.SendText(str);
 }
 
 /**
@@ -125,6 +131,7 @@ auto state Login
 			interface.gateway.Logf("[Login] I am ClientID #"$ClientID, Name, interface.gateway.LOG_DEBUG);
 			GIIRCd(Interface).IRCUsers[ClientID].Realname = sRealname;
 			PlayerController.SetName(sUsername);
+			Interface.gateway.NotifyClientJoin(self);
 			GotoState('loggedin');
 		}
 	}
@@ -170,6 +177,7 @@ state Loggedin
 									}
 									else {
 										SendIRC(":You are now an IRC operator", "381"); // RPL_YOUREOPER
+										if (GIIRCd(interface).IRCUserMode(ClientID, "o", true)) SendIRC("+o", "221"); //RPL_UMODEIS
 										for (i = 0; i < Channels.length; i++)
 										{
 											channels[i].SetChannelModeUser(ClientID, "o");
@@ -302,6 +310,11 @@ begin:
 	SendIRC(":Current local users: ... Max: ...", "265");
 	SendIRC(":Current global users: ... Max: ...", "252");
 	if (bShowMotd) ircExecMOTD();
+	if (PlayerController.PlayerReplicationInfo.bAdmin)
+	{
+		if (GIIRCd(interface).IRCUserMode(ClientID, "o", true)) SendIRC("+o", "221"); //RPL_UMODEIS
+		SendIRC(":You are now an IRC operator", "381");
+	}
 }
 
 ///////////////////////////////// IRC COMMANDS /////////////////////////////////
@@ -556,12 +569,12 @@ function ircExecPRIVMSG(string receipt, string text)
 			id.BroadcastMessage(":"$sUsername$"!"$sUserhost@"PRIVMSG"@receipt@text, self);
 		}
 		else {
-			if (receipt ~= GIIRCd(Interface).GameChannel)
+			if (id == GIIRCd(Interface).GameChannel)
 			{
 				AdvSplit("say"@Mid(text, 1), " ", cmd);
 				Interface.gateway.ExecCommand(self, cmd);
 			}
-			else if (receipt ~= GIIRCd(Interface).AdminChannel)
+			else if (id == GIIRCd(Interface).AdminChannel)
 			{
 				if (Mid(text, 1, 1) == ".") // command
 				{
@@ -647,39 +660,40 @@ function ircExecLIST(optional string mask)
 /** return of a function call, ident is used to ident the data, always output this to the admin channel */
 function output(coerce string data, optional string ident, optional bool bDontWrapFirst)
 {
-	SendText(":-output- PRIVMSG"@GIIRCd(Interface).AdminChannel@data);
+	if (bDontWrapFirst) ident = "";
+	SendText(":-output- PRIVMSG"@GIIRCd(Interface).AdminChannelName@ident$data);
 }
 
 /** return of a function call, ident is used to ident the data */
 function outputError(string errormsg, optional string ident, optional bool bDontWrapFirst)
 {
-	SendText(":-error- PRIVMSG"@GIIRCd(Interface).AdminChannel@errormsg);
+	if (bDontWrapFirst) ident = "";
+	SendText(":-error- PRIVMSG"@GIIRCd(Interface).AdminChannelName@ident$errormsg);
 }
 
 /** will be called for chat messages, always output this to the game channel */
 function outputChat(coerce string pname, coerce string message, optional name Type, optional PlayerReplicationInfo PC)
 {
 	local int id;
-	log(pname@sUsername);
-	if (pname ~= sUsername) return;
-	id = GIIRCd(Interface).GetNick(pname);
+	id = GIIRCd(Interface).GetNick(,PC);
 	if (id < 0)
 	{
 		id = GIIRCd(Interface).GetSystemIRCUser(PlayerController(PC.Owner));
 		if (id < 0)
 		{
-			SendText(":"$pname$"!~@unknown PRIVMSG"@GIIRCd(Interface).GameChannel@message);
+			SendText(":?"$pname$"!~@unknown PRIVMSG"@GIIRCd(Interface).GameChannelName@message);
 			return;
 		}
 	}
-	SendText(":"$GIIRCd(Interface).IRCUsers[id].Nick$"!"$GIIRCd(Interface).IRCUsers[id].Userhost@"PRIVMSG"@GIIRCd(Interface).GameChannel@message);
+	if (id == ClientID) return;
+	SendText(":"$GIIRCd(Interface).IRCUsers[id].Nick$"!"$GIIRCd(Interface).IRCUsers[id].Userhost@"PRIVMSG"@GIIRCd(Interface).GameChannelName@message);
 }
 
 
 defaultproperties
 {
 	ClientID=-1
-	CVSversion="$Id: GCIRC.uc,v 1.17 2004/05/08 21:49:32 elmuerte Exp $"
+	CVSversion="$Id: GCIRC.uc,v 1.18 2004/05/09 18:43:43 elmuerte Exp $"
 	bShowMotd=true
 	MaxChannels=2
 	bAllowCreateChannel=false

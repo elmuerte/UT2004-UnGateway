@@ -7,12 +7,11 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GIIRCd.uc,v 1.15 2004/05/08 21:49:32 elmuerte Exp $ -->
+	<!-- $Id: GIIRCd.uc,v 1.16 2004/05/09 18:43:43 elmuerte Exp $ -->
 *******************************************************************************/
 /*
 	TODO:
 	- manage new imgateway players via linked list
-	- detect player parting (NotifyLogout in GameInfo)
 */
 class GIIRCd extends UnGatewayInterface;
 
@@ -46,18 +45,20 @@ var array<UGIRCChannel> Channels;
 var class<UGIRCChannel> IRCChannelClass;
 
 /** name of the game channel */
-var string GameChannel;
+var string GameChannelName;
+var UGIRCChannel GameChannel;
 /** local channel for administration */
-var string AdminChannel;
+var string AdminChannelName;
+var UGIRCChannel AdminChannel;
 
 /** create the initial channels */
 function Create(GatewayDaemon gwd)
 {
 	Super.Create(gwd);
-	AdminChannel = "&admin";
-	CreateChannel(AdminChannel, "Server administation channel - prefix message with a '.' to execute commands", true, true, true);
-	GameChannel = "#"$gateway.hostaddress$"_"$Level.Game.GetServerPort();
-	CreateChannel(GameChannel, Level.Game.GameReplicationInfo.ServerName@"-"@Level.Game.GameName@"-"@Level.Title,,,true);
+	AdminChannelName = "&admin";
+	AdminChannel = CreateChannel(AdminChannelName, "Server administation channel - prefix message with a '.' to execute commands", true, true, true);
+	GameChannelName = "#"$gateway.hostaddress$"_"$Level.Game.GetServerPort();
+	GameChannel = CreateChannel(GameChannelName, Level.Game.GameReplicationInfo.ServerName@"-"@Level.Game.GameName@"-"@Level.Title,,,true);
 }
 
 /** register the new client */
@@ -94,6 +95,25 @@ function string FixName(string username)
 {
 	// TODO:
 	return username;
+}
+
+/** get a unique name */
+function string GetUniqueName(string base)
+{
+	local int i;
+	local string newname;
+
+	newname = base;
+loop:
+	for (i = 0; i < IRCUsers.Length; i++)
+	{
+		if ((IRCUsers[i].Nick ~= newname) && (!IRCUsers[i].bDead))
+		{
+			newname = base$(i++);
+			goto loop;
+		}
+	}
+	return newname;
 }
 
 /** check a nick name to be valid */
@@ -157,7 +177,8 @@ function int GetSystemIRCUser(PlayerController PC, optional bool bDontAdd, optio
 	if (bDontAdd) return -1;
 	gateway.Logf("[GetSystemIRCUser] Creating IRC user:"@PC.PlayerReplicationInfo.PlayerName, Name, gateway.LOG_EVENT);
 	IRCUsers.length = IRCUsers.length+1;
-	IRCUsers[IRCUsers.length-1].Nick = PC.PlayerReplicationInfo.PlayerName;
+	IRCUsers[IRCUsers.length-1].Nick = GetUniqueName(fixname(PC.PlayerReplicationInfo.PlayerName));
+	IRCUsers[IRCUsers.length-1].RealName = PC.PlayerReplicationInfo.PlayerName;
 	IRCUsers[IRCUsers.length-1].Userhost = PC.Name$"@"$PC.GetPlayerNetworkAddress();
 	IRCUsers[IRCUsers.length-1].PC = PC;
 	if (UnGatewayPlayer(PC) != none)
@@ -166,8 +187,8 @@ function int GetSystemIRCUser(PlayerController PC, optional bool bDontAdd, optio
 	}
 	IRCUsers[IRCUsers.length-1].Client = none;
 	IRCUsers[IRCUsers.length-1].Mode = "i"; // always invisible
-	GetChannel(GameChannel).JoinUser(IRCUsers.length-1);
-	if (PC.PlayerReplicationInfo.bAdmin) GetChannel(GameChannel).SetChannelModeUser(IRCUsers.length-1, "o");
+	GameChannel.JoinUser(IRCUsers.length-1);
+	if (PC.PlayerReplicationInfo.bAdmin) GameChannel.SetChannelModeUser(IRCUsers.length-1, "o");
 	return IRCUsers.length-1;
 }
 
@@ -213,14 +234,48 @@ function UGIRCChannel GetChannel(string ChannelName)
 }
 
 /** find the user id */
-function int GetNick(string Nickname)
+function int GetNick(optional string Nickname, optional PlayerReplicationInfo PRI)
 {
 	local int i;
-	for (i = 0; i < IRCUsers.Length; i++)
+	if (PRI != none)
 	{
-		if (IRCUsers[i].Nick ~= Nickname) return i;
+		for (i = 0; i < IRCUsers.Length; i++)
+		{
+			if (IRCUsers[i].PC.PlayerReplicationInfo == PRI) return i;
+		}
+	}
+	else if (Nickname != "")
+	{
+		for (i = 0; i < IRCUsers.Length; i++)
+		{
+			if (IRCUsers[i].Nick ~= Nickname) return i;
+		}
 	}
 	return -1;
+}
+
+/** return the user!ident@host mask */
+function string GetIRCUserHost(int idx)
+{
+	if (idx < 0 || idx >= IRCUsers.Length) return "";
+	return IRCUsers[idx].Nick$"!"$IRCUsers[idx].Userhost;
+}
+
+/** grant/revoke usermode settings */
+function bool IRCUserMode(int idx, string mode, bool grant)
+{
+	if (idx < 0 || idx >= IRCUsers.Length) return false;
+	if (Len(mode) > 1) return false;
+	if (grant)
+	{
+		if (InStr(IRCUsers[idx].Mode, mode) > -1) return false;
+		IRCUsers[idx].Mode $= mode;
+	}
+	else {
+		if (InStr(IRCUsers[idx].Mode, mode) == -1) return false;
+		IRCUsers[idx].Mode = repl(IRCUsers[idx].Mode, mode, "");
+	}
+	return true;
 }
 
 /**
@@ -261,25 +316,56 @@ function BroadcastMessageList(coerce string message, array<UGIRCChannel> id, opt
 event Tick(float deltatime)
 {
 	local Controller C;
+	local int i;
+	local string tmp;
+
 	super.Tick(deltatime);
-	C = Level.ControllerList;
-	while (C != none)
+	for (C = Level.ControllerList; C != none; C = C.nextController)
 	{
-		if (PlayerController(C) != none)
+		if (PlayerController(C) != none && UnGatewayPlayer(C) == none)
 		{
-			if (UnGatewayPlayer(C) == none)
+			i = GetSystemIRCUser(PlayerController(C));
+			if (i > -1)
 			{
-				GetSystemIRCUser(PlayerController(C));
+				if (IRCUsers[i].RealName != C.PlayerReplicationInfo.PlayerName)
+				{
+					tmp = GetUniqueName(FixName(C.PlayerReplicationInfo.PlayerName));
+					GameChannel.BroadcastMessage(":"$GetIRCUserHost(i)@"NICK"@tmp);
+					IRCUsers[i].Nick = tmp;
+				}
 			}
 		}
-		C = C.nextController;
+	}
+}
+
+function NotifyClientJoin(UnGatewayClient client)
+{
+	if (!Client.IsA(AcceptClass.default.Name)) // our clients will automatically log in
+	{
+		GetSystemIRCUser(client.PlayerController);
+	}
+}
+
+function NotifyClientLeave(UnGatewayClient client)
+{
+	local int idx;
+	if (!Client.IsA(AcceptClass.default.Name)) // our clients will automatically log out
+	{
+		idx = GetSystemIRCUser(client.PlayerController, true);
+		if (idx > -1)
+		{
+			GameChannel.BroadcastMessage(":"$GetIRCUserHost(idx)@"QUIT :Logout");
+			IRCUsers[idx].bDead = true;
+			IRCUsers[idx].PC = none;
+			IRCUsers[idx].client = none;
+		}
 	}
 }
 
 defaultproperties
 {
-	Ident="IRC/100"
-	CVSversion="$Id: GIIRCd.uc,v 1.15 2004/05/08 21:49:32 elmuerte Exp $"
+	Ident="IRC/101"
+	CVSversion="$Id: GIIRCd.uc,v 1.16 2004/05/09 18:43:43 elmuerte Exp $"
 	AcceptClass=class'UnGateway.GCIRC'
 	IRCChannelClass=class'UnGateway.UGIRCChannel'
 }
