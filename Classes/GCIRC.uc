@@ -8,7 +8,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCIRC.uc,v 1.22 2004/05/24 22:40:08 elmuerte Exp $ -->
+	<!-- $Id: GCIRC.uc,v 1.23 2004/06/02 15:43:18 elmuerte Exp $ -->
 *******************************************************************************/
 class GCIRC extends UnGatewayClient config;
 
@@ -39,6 +39,9 @@ var string QuitMessage;
 
 /** pointer to this clients entry in the IRC user list */
 var int ClientID;
+
+//!Localized
+var localized string PICat, PILabel[5], PIDesc[5];
 
 /** connection closed, clean up and announce to the server */
 event Closed()
@@ -802,11 +805,47 @@ function outputChat(coerce string pname, coerce string message, optional name Ty
 	SendText(":"$GIIRCd(Interface).GetIRCUserHost(id)@"PRIVMSG"@GIIRCd(Interface).GameChannelName@message);
 }
 
+static function FillPlayInfo(PlayInfo PlayInfo)
+{
+	super.FillPlayInfo(PlayInfo);
+	PlayInfo.AddSetting(default.PICat, "bMustLogin", 			default.PILabel[0], 255, 1, "Check");
+ 	PlayInfo.AddSetting(default.PICat, "bShowMotd", 			default.PILabel[1], 128, 1, "Check");
+  	// adding MOTD crashes when it contains a lot of data
+	//PlayInfo.AddSetting(default.PICat, "MOTD", default.PILabel[2], 128, 1, "Text");
+	PlayInfo.AddSetting(default.PICat, "MaxChannels", 			default.PILabel[3], 128, 1, "Text", "3;1:999",,,true);
+	PlayInfo.AddSetting(default.PICat, "bAllowCreateChannel", 	default.PILabel[4], 128, 1, "Text", "3;1:999",,,true);
+}
+
+static event string GetDescriptionText(string PropName)
+{
+	switch (PropName)
+	{
+		case "bMustLogin":			return default.PIDesc[0];
+		case "bShowMotd":			return default.PIDesc[1];
+		case "MOTD":				return default.PIDesc[2];
+		case "MaxChannels":			return default.PIDesc[3];
+		case "bAllowCreateChannel":	return default.PIDesc[4];
+	}
+	return "";
+}
 
 defaultproperties
 {
 	ClientID=-1
-	CVSversion="$Id: GCIRC.uc,v 1.22 2004/05/24 22:40:08 elmuerte Exp $"
+	CVSversion="$Id: GCIRC.uc,v 1.23 2004/06/02 15:43:18 elmuerte Exp $"
+
+	PICat="IRC daemon"
+	PILabel[0]="Must login"
+	PIDesc[0]="If set the user must login with a valid username and password when they register."
+	PILabel[1]="Show MOTD"
+	PIDesc[1]="Show the message of the day on login."
+	PILabel[2]="MOTD"
+	PIDesc[2]="Message of the day"
+	PILabel[3]="Maximum channels"
+	PIDesc[3]="Maximum Channels a user can join"
+	PILabel[4]="Allow channel creation"
+	PIDesc[4]="Allow channel creation. It's strongly adviced not to enable this"
+
 	bMustLogin=false
 	bShowMotd=true
 	MaxChannels=2
