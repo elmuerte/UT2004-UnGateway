@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UnGatewayInterface.uc,v 1.9 2004/05/24 17:07:33 elmuerte Exp $ -->
+	<!-- $Id: UnGatewayInterface.uc,v 1.10 2004/05/24 22:40:09 elmuerte Exp $ -->
 *******************************************************************************/
 class UnGatewayInterface extends TcpLink abstract config;
 
@@ -191,9 +191,9 @@ defaultproperties
 	RequestedReceiveMode=RMODE_Event
 	RequestedLinkMode=MODE_Line
 	iMaxClients=10
-	CVSversion="$Id: UnGatewayInterface.uc,v 1.9 2004/05/24 17:07:33 elmuerte Exp $"
+	CVSversion="$Id: UnGatewayInterface.uc,v 1.10 2004/05/24 22:40:09 elmuerte Exp $"
 
-	AccessPolicy[0]=(hostmask="*",policy=AP_Allow);
+	AccessPolicy[0]=(hostmask="*",policy=AP_Allow)
 
 	PILabel[0]="Listen port"
 	PIDescription[0]="The port this interface will listen on. It should be an unused port."

@@ -8,7 +8,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCIRC.uc,v 1.21 2004/05/24 17:07:33 elmuerte Exp $ -->
+	<!-- $Id: GCIRC.uc,v 1.22 2004/05/24 22:40:08 elmuerte Exp $ -->
 *******************************************************************************/
 class GCIRC extends UnGatewayClient config;
 
@@ -200,7 +200,7 @@ state Loggedin
 								}
 								break;
 			case "QUIT":		ircExecQUIT(Mid(line, 6)); break;
-			case "SQUIT":		break; // NOT YET supported
+			//case "SQUIT":		break; //TODO: NOT YET supported
 			case "JOIN":		if (input.length < 2) SendIRC("JOIN :Not enough parameters", "461"); // ERR_NEEDMOREPARAMS
 								else {
 									split(input[1], ",", data1);
@@ -249,7 +249,7 @@ state Loggedin
 			case "LIST":		ircExecLIST(); // can only print local channels
 								break;
 			//case "INVITE":	not supported
-			case "KICK":		break; // not yet implemented
+			//case "KICK":		break;//TODO: // not yet implemented
 			case "VERSION":		if (input.length > 1) ircExecVERSION(input[1]);
 								else ircExecVERSION();
 								break;
@@ -806,7 +806,7 @@ function outputChat(coerce string pname, coerce string message, optional name Ty
 defaultproperties
 {
 	ClientID=-1
-	CVSversion="$Id: GCIRC.uc,v 1.21 2004/05/24 17:07:33 elmuerte Exp $"
+	CVSversion="$Id: GCIRC.uc,v 1.22 2004/05/24 22:40:08 elmuerte Exp $"
 	bMustLogin=false
 	bShowMotd=true
 	MaxChannels=2
