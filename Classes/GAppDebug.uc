@@ -1,7 +1,7 @@
 /**
 	GAppDebug
 	Debug commands, should not be used in
-	$Id: GAppDebug.uc,v 1.3 2003/12/30 12:24:47 elmuerte Exp $
+	$Id: GAppDebug.uc,v 1.4 2004/01/02 09:19:24 elmuerte Exp $
 */
 class GAppDebug extends UnGatewayApplication;
 
@@ -71,6 +71,7 @@ function execList(UnGatewayClient client, array<string> cmd)
 
 defaultproperties
 {
+	CVSversion="$Id: GAppDebug.uc,v 1.4 2004/01/02 09:19:24 elmuerte Exp $"
 	Commands[0]=(Name="echo",Help="Returns it's first argument||Usage: echo \"some text\"")
 	Commands[1]=(Name="help",Help="Show help about commands|This should be a built-in command||Usage: help <command>")
 	Commands[2]=(Name="list",Help="List all registered commands")

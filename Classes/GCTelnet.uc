@@ -3,30 +3,83 @@
 	Telnet client, spawned from GITelnetd
 	Note: windows telnet client should use ANSI not VT100
 	RFC: 318, 513, 764, 854, 855, 857, 858, 859, 884, 930, 1073, 1091, 1116, 1572
-	$Id: GCTelnet.uc,v 1.4 2003/12/30 12:24:47 elmuerte Exp $
+	$Id: GCTelnet.uc,v 1.5 2004/01/02 09:19:24 elmuerte Exp $
 */
 class GCTelnet extends UnGatewayClient;
 
-// telnet protocol
-const T_IAC       = 255;
-const T_WILL      = 251;
-const T_WONT      = 252;
-const T_DO        = 253;
-const T_DONT      = 254;
-const T_SB        = 250;
-const T_SE        = 240;
-// options
-const O_ECHO      = 1;
-const O_SGOAHEAD  = 3;
-const O_TERMINAL  = 24;
-const O_WSIZE     = 31;
-// control codes
-const C_BS				= 8;
-const C_TAB				= 9;
-const C_NL				= 10;
-const C_CR				= 13;
-const C_ESC				= 27;
-const C_DEL				= 127;
+/** Telnet command: "Interpret as Command" */
+const T_IAC			= 255;
+/**
+	Telnet command:
+	Indicates the desire to begin performing, or confirmation that
+	you are now performing, the indicated option
+*/
+const T_WILL		= 251;
+/**
+	Telnet command:
+	Indicates the refusal to perform, or continue performing, the indicated option.
+*/
+const T_WONT		= 252;
+/**
+	Telnet command:
+	Indicates the request that the other party perform, or
+	confirmation that you are expecting the other party to perform, the
+	indicated option.
+*/
+const T_DO			= 253;
+/**
+	Telnet command:
+	Indicates the demand that the other party stop performing,
+	or confirmation that you are no longer expecting the other party
+	to perform, the indicated option.
+*/
+const T_DONT		= 254;
+/**
+	Telnet command:
+	Indicates that what follows is subnegotiation of the indicated option
+*/
+const T_SB			= 250;
+/** Telnet command: End of subnegotiation parameters */
+const T_SE			= 240;
+
+/**
+	Telnet option:
+	When the echoing option is in effect, the party at the end performing
+	the echoing is expected to transmit (echo) data characters it
+	receives back to the sender of the data characters.
+*/
+const O_ECHO		= 1;
+/**
+	Telnet option:
+ 	When the SUPPRESS-GO-AHEAD option is in effect on the connection
+	between a sender of data and the receiver of the data, the sender
+	need not transmit GAs.
+*/
+const O_SGOAHEAD	= 3;
+/**
+	Telnet option:
+ 	this option allows a telnet server to determine the type of terminal
+	connected to a user telnet program.
+*/
+const O_TERMINAL	= 24;
+/**
+ 	Telnet option:
+ 	Negotiate About Window Size
+*/
+const O_NAWS		= 31;
+
+/** ASCII code: backspace */
+const C_BS			= 8;
+/** ASCII code: horizontal tab */
+const C_TAB			= 9;
+/** ASCII code: newline */
+const C_NL			= 10;
+/** ASCII code: carriage return */
+const C_CR			= 13;
+/** ASCII code: escape */
+const C_ESC			= 27;
+/** ASCII code: delete */
+const C_DEL			= 127;
 
 /** true -> echo input */
 var bool bEcho;
@@ -80,9 +133,11 @@ event Accepted()
 	bEcho = true;
 
 	// don't echo - server: WILL ECHO
-  SendText(Chr(T_IAC)$Chr(T_WILL)$Chr(O_ECHO));
-  // will supress go ahead
-  SendText(Chr(T_IAC)$Chr(T_WILL)$Chr(O_SGOAHEAD));
+	SendText(Chr(T_IAC)$Chr(T_WILL)$Chr(O_ECHO));
+	// will supress go ahead
+	SendText(Chr(T_IAC)$Chr(T_WILL)$Chr(O_SGOAHEAD));
+	// send window size and changes
+	SendText(Chr(T_IAC)$Chr(T_DO)$Chr(O_NAWS));
 
 	if (bDisableAuth)
 	{
@@ -330,18 +385,28 @@ function int ProcTelnetProtocol( int pos, int Count, byte B[255] )
 	bProcTelnet = true;
 	switch (B[pos])
 	{
-		case T_WILL:	length += 2; break;
-		case T_WONT:	length += 2; break;
-		case T_DO:		length += 2; break;
-		case T_DONT:	length += 2; break;
-		case T_SB:		pos++;
-									length++;
-									while (B[pos] != T_SE)
-									{
-										length++;
-										pos++;
-										if (pos > Count) return length;
-									}
+		case T_WILL:	Interface.gateway.Logf("WILL"@B[pos+1], Name, Interface.gateway.LOG_DEBUG);
+						length += 2;
+						break;
+		case T_WONT:	Interface.gateway.Logf("WONT"@B[pos+1], Name, Interface.gateway.LOG_DEBUG);
+						length += 2;
+						break;
+		case T_DO:		Interface.gateway.Logf("DO"@B[pos+1], Name, Interface.gateway.LOG_DEBUG);
+						length += 2;
+						break;
+		case T_DONT:	Interface.gateway.Logf("DONT"@B[pos+1], Name, Interface.gateway.LOG_DEBUG);
+						length += 2;
+						break;
+		case T_SB:		Interface.gateway.Logf("SB", Name, Interface.gateway.LOG_DEBUG);
+						pos++;
+						length++;
+						while (B[pos] != T_SE)
+						{
+							Interface.gateway.Logf("SB: "@B[pos], Name, Interface.gateway.LOG_DEBUG);
+							length++;
+							pos++;
+							if (pos > Count) return length;
+						}
 	}
 	bProcTelnet = false;
 	return length;
@@ -413,6 +478,8 @@ function IssueMessage()
 	SendLine();
 	SendLine("UnrealEngine2/"$Level.EngineVersion@Interface.gateway.Ident@Interface.Ident@Interface.gateway.ComputerName@Interface.Gateway.CreationTime);
 	if (Interface.gateway.CVSversion != "") SendLine(Interface.gateway.CVSversion);
+	if (Interface.CVSversion != "") SendLine(Interface.CVSversion);
+	if (CVSversion != "") SendLine(CVSversion);
 	SendLine();
 }
 
@@ -566,6 +633,7 @@ function outputError(string errormsg)
 
 defaultproperties
 {
+	CVSversion="$Id: GCTelnet.uc,v 1.5 2004/01/02 09:19:24 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0

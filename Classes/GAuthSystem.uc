@@ -1,7 +1,7 @@
 /**
 	GAuthSystem
 	Authentication Client that uses the system default
-	$Id: GAuthSystem.uc,v 1.2 2003/09/26 08:28:41 elmuerte Exp $
+	$Id: GAuthSystem.uc,v 1.3 2004/01/02 09:19:24 elmuerte Exp $
 */
 class GAuthSystem extends UnGatewayAuth;
 
@@ -28,4 +28,9 @@ function bool Logout(UnGatewayClient client)
 		return false;
 	}
 	return true;
+}
+
+defaultproperties
+{
+	CVSversion="$Id: GAuthSystem.uc,v 1.3 2004/01/02 09:19:24 elmuerte Exp $"
 }

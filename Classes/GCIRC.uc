@@ -2,7 +2,7 @@
 	GCIRC
 	IRC client, spawned from GIIRCd
 	RFC: 1459
-	$Id: GCIRC.uc,v 1.10 2003/12/28 21:40:55 elmuerte Exp $
+	$Id: GCIRC.uc,v 1.11 2004/01/02 09:19:24 elmuerte Exp $
 */
 class GCIRC extends UnGatewayClient;
 
@@ -12,7 +12,7 @@ var config bool bShowMotd;
 var config array<string> MOTD;
 /** Maximum Channels a user can join */
 var config int MaxChannels;
-/** 
+/**
 	Allow channel creation
 	Turning this on will enable remote channels, it's strongly adviced not to enable this
 	Note: remote channels are NOT supported
@@ -60,8 +60,8 @@ function SendIRC(string data, coerce string code)
 	interface.gateway.Logf("[SendIRC] :"$interface.gateway.hostname@code@nm@data, Name, interface.gateway.LOG_DEBUG);
 }
 
-/** 
-	return true if this user is in the channel 
+/**
+	return true if this user is in the channel
 	using the channel record pointer is faster
 */
 function bool IsIn(optional string channelname, optional int id)
@@ -107,15 +107,15 @@ auto state Login
 		{
 			// NICK <nickname>
 			case "NICK":	if (input.length < 2) SendIRC(":No nickname given", "431"); // ERR_NONICKNAMEGIVEN
-										else GIIRCd(Interface).CheckNickName(Self, input[1]); // will check the name and assign it 
+										else GIIRCd(Interface).CheckNickName(Self, input[1]); // will check the name and assign it
 										break;
 			// PASS <password>
 			case "PASS":	if (input.length < 2) SendIRC("PASS :Not enough parameters", "461"); // ERR_NEEDMOREPARAMS
 										else if (sUsername != "" || sUserhost != "") SendIRC(":You may not reregister", "462"); // ERR_ALREADYREGISTRED
-										else sPassword = input[1]; 
+										else sPassword = input[1];
 										break;
 			// USER <username> <client host> <server host> :<real name>
-			case "USER":	if (input.length < 4) 
+			case "USER":	if (input.length < 4)
 										{
 											SendIRC("USER :Not enough parameters", "461"); // ERR_NEEDMOREPARAMS
 											break;
@@ -157,7 +157,7 @@ state Loggedin
 		switch (input[0])
 		{
 			case "NICK":		if (input.length < 2) SendIRC(":No nickname given", "431"); // ERR_NONICKNAMEGIVEN
-											else GIIRCd(Interface).CheckNickName(Self, input[1]); // will check the name and assign it 
+											else GIIRCd(Interface).CheckNickName(Self, input[1]); // will check the name and assign it
 											break;
 			case "PASS":		SendIRC(":You may not reregister", "462"); // ERR_ALREADYREGISTRED
 											break;
@@ -312,7 +312,7 @@ function ircExecMOTD()
 {
 	local int i;
 	local string chans;
-	if (MOTD.length == 0) 
+	if (MOTD.length == 0)
 	{
 		SendIRC(":MOTD File is missing", "422"); // ERR_NOMOTD
 		return;
@@ -322,7 +322,7 @@ function ircExecMOTD()
 	{
 		chans $= GIIRCd(Interface).Channels[i].Name$" ";
 	}
-	for (i = 0; i < MOTD.length; i++) 
+	for (i = 0; i < MOTD.length; i++)
 	{
 		MOTD[i] = repl(MOTD[i], "%hostname%", interface.gateway.hostname);
 		MOTD[i] = repl(MOTD[i], "%channels%", chans);
@@ -347,7 +347,7 @@ function ircExecJOIN(string channel, optional string key)
 		return;
 	}
 	if (Channels.length >= MaxChannels)
-	{		
+	{
 		SendIRC(channel@":You have joined too many channels", "405"); // ERR_TOOMANYCHANNELS
 		return;
 	}
@@ -365,9 +365,9 @@ function ircExecJOIN(string channel, optional string key)
 	}
 
 	if (IsIn(, id)) // already in this channel
-	{			
+	{
 	}
-	else {			
+	else {
 		if (GIIRCd(Interface).Channels[id].Key != "" && GIIRCd(Interface).Channels[id].Key != Key)
 		{
 			SendIRC(channel@":Cannot join channel (+k)", "475"); // ERR_BADCHANNELKEY
@@ -484,7 +484,7 @@ function ircExecTOPIC(string channel, optional string newTopic, optional int id)
 			SendIRC(channel@":No topic is set", "331"); // RPL_NOTOPIC
 		}
 	}
-	else { 
+	else {
 		// ERR_CHANOPRIVSNEEDED
 	}
 }
@@ -592,7 +592,7 @@ function ircExecKILL(string nick, string message)
 
 function ircExecLIST(optional string mask)
 {
-	local int i;	
+	local int i;
 	SendIRC("Channel :Users  Name", "321"); // RPL_LISTSTART
 	for (i = 0; i < GIIRCd(Interface).Channels.length; i++)
 	{
@@ -606,6 +606,7 @@ function ircExecLIST(optional string mask)
 
 defaultproperties
 {
+	CVSversion="$Id: GCIRC.uc,v 1.11 2004/01/02 09:19:24 elmuerte Exp $"
 	bShowMotd=true
 	MaxChannels=2
 	bAllowCreateChannel=false

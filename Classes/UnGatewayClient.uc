@@ -1,9 +1,12 @@
 /**
 	UnGatewayClient
 	client for TCP based services linked in the Gateway system
-	$Id: UnGatewayClient.uc,v 1.9 2003/12/30 12:24:47 elmuerte Exp $
+	$Id: UnGatewayClient.uc,v 1.10 2004/01/02 09:19:24 elmuerte Exp $
 */
 class UnGatewayClient extends TCPLink abstract config;
+
+/** CVS Id string */
+var const string CVSversion;
 
 var UnGatewayInterface Interface;
 var class<UnGatewayPlayer> PlayerControllerClass;
@@ -181,4 +184,5 @@ static final operator(44) string @= ( out string A, coerce string B )
 defaultproperties
 {
 	PlayerControllerClass=class'UnGateway.UnGatewayPlayer'
+	CVSversion="$Id: UnGatewayClient.uc,v 1.10 2004/01/02 09:19:24 elmuerte Exp $"
 }

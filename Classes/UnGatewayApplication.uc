@@ -1,9 +1,12 @@
 /**
 	UnGatewayApplication
 	Applications
-	$Id: UnGatewayApplication.uc,v 1.2 2003/12/28 21:40:55 elmuerte Exp $
+	$Id: UnGatewayApplication.uc,v 1.3 2004/01/02 09:19:24 elmuerte Exp $
 */
 class UnGatewayApplication extends Object within GatewayDaemon abstract;
+
+/** CVS Id string */
+var const string innerCVSversion;
 
 struct CommandInfo
 {
@@ -28,8 +31,8 @@ function Create()
 	}
 }
 
-/** 
-	execute this command, called from the gateway 
+/**
+	execute this command, called from the gateway
 	should be overwritten by subclasses
 */
 function bool ExecCmd(UnGatewayClient client, array<string> cmd)
@@ -52,4 +55,9 @@ function string GetHelpFor(string Command)
 		if (Commands[i].Name ~= Command) return Commands[i].Help;
 	}
 	return "";
+}
+
+defaultproperties
+{
+	innerCVSversion="$Id: UnGatewayApplication.uc,v 1.3 2004/01/02 09:19:24 elmuerte Exp $"
 }

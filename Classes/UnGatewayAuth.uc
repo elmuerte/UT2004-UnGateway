@@ -1,9 +1,12 @@
 /**
 	UnGatewayAuth
 	Base authentication class, this is used for user authentication
-	$Id: UnGatewayAuth.uc,v 1.1 2003/09/04 08:11:46 elmuerte Exp $
+	$Id: UnGatewayAuth.uc,v 1.2 2004/01/02 09:19:24 elmuerte Exp $
 */
 class UnGatewayAuth extends Info abstract;
+
+/** CVS Id string */
+var const string CVSversion;
 
 var GatewayDaemon gateway;
 
@@ -24,4 +27,9 @@ function bool Login(UnGatewayClient client, string username, string password, op
 function bool Logout(UnGatewayClient interface)
 {
 	return true;
+}
+
+defaultproperties
+{
+	CVSversion="$Id: UnGatewayAuth.uc,v 1.2 2004/01/02 09:19:24 elmuerte Exp $"
 }

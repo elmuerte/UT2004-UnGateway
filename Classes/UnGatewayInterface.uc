@@ -1,7 +1,7 @@
 /**
 	UnGatewayInterface
 	Interface for TCP based services linked in the Gateway system
-	$Id: UnGatewayInterface.uc,v 1.2 2003/09/04 11:26:42 elmuerte Exp $
+	$Id: UnGatewayInterface.uc,v 1.3 2004/01/02 09:19:24 elmuerte Exp $
 */
 class UnGatewayInterface extends TcpLink abstract config;
 
@@ -20,18 +20,20 @@ var int clientCount;
 /** maximum number of client connections that may be open */
 var config int iMaxClients;
 
-/** 
-	identifier of the interface 
+/**
+	identifier of the interface
 	format: name/version
 */
 var const string Ident;
+/** CVS Id string */
+var const string CVSversion;
 
 /** Called after the object has been created */
 function Create(GatewayDaemon gwd)
-{	
+{
 	local IpAddr tmp;
 	gateway = gwd;
-	gateway.Logf("[Create] Starting:"@Ident, Name, gateway.LOG_INFO);	
+	gateway.Logf("[Create] Starting:"@Ident, Name, gateway.LOG_INFO);
 	ReceiveMode = RequestedReceiveMode;
 	LinkMode = RequestedLinkMode;
 	if (iListenPort <= 0)
@@ -80,7 +82,7 @@ event GainedChild(Actor Other)
 		}
 		UnGatewayClient(Other).Interface = self;
 		GainedClient(UnGatewayClient(Other));
-	}	
+	}
 }
 
 /** should be overwritten */
@@ -89,14 +91,14 @@ function GainedClient(UnGatewayClient client);
 event LostChild(Actor Other)
 {
 	gateway.Logf("LostChild", Name, gateway.LOG_EVENT);
-	if (UnGatewayClient(Other) != none) 
-	{	
+	if (UnGatewayClient(Other) != none)
+	{
 		clientCount--;
 		if(iMaxClients > 0 && clientCount <= iMaxClients && LinkState != STATE_Listening)
 		{
 			gateway.Logf("[GainedChild] clientCount <= iMaxClients = opening port", Name, gateway.LOG_WARN);
 			Listen();
-		}		
+		}
 		LostClient(UnGatewayClient(Other));
 	}
 }
@@ -112,4 +114,5 @@ defaultproperties
 	RequestedReceiveMode=RMODE_Event
 	RequestedLinkMode=MODE_Line
 	iMaxClients=10
+	CVSversion="$Id: UnGatewayInterface.uc,v 1.3 2004/01/02 09:19:24 elmuerte Exp $"
 }

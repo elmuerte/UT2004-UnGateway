@@ -1,7 +1,7 @@
 /**
 	GIIRCd
 	IRC server
-	$Id: GIIRCd.uc,v 1.10 2003/09/27 15:13:08 elmuerte Exp $
+	$Id: GIIRCd.uc,v 1.11 2004/01/02 09:19:24 elmuerte Exp $
 */
 class GIIRCd extends UnGatewayInterface;
 
@@ -102,7 +102,7 @@ function bool CheckNickName(GCIRC client, string RequestedName)
 			Client.SendIRC(RequestedName@":Nickname is already in use", "433"); // ERR_NICKNAMEINUSE
 			return false;
 		}
-	}	
+	}
 	if (client.ClientID > 0) IRCUsers[client.ClientID].Nick = RequestedName;
 	client.sUsername = RequestedName;
 }
@@ -168,7 +168,7 @@ function int GetChannel(string ChannelName)
 	return -1;
 }
 
-/** 
+/**
 	send this text to all clients except self
 */
 function BroadcastMessage(coerce string message, int id, optional GCIRC origin)
@@ -190,5 +190,6 @@ function BroadcastMessage(coerce string message, int id, optional GCIRC origin)
 defaultproperties
 {
 	Ident="IRC/100"
+	CVSversion="$Id: GIIRCd.uc,v 1.11 2004/01/02 09:19:24 elmuerte Exp $"
 	AcceptClass=class'UnGateway.GCIRC'
 }
