@@ -1,7 +1,7 @@
 /**
 	GAuthSystem
 	Authentication Client that uses the system default
-	$Id: GAuthSystem.uc,v 1.1 2003/09/04 08:11:46 elmuerte Exp $
+	$Id: GAuthSystem.uc,v 1.2 2003/09/26 08:28:41 elmuerte Exp $
 */
 class GAuthSystem extends UnGatewayAuth;
 
@@ -21,6 +21,7 @@ function bool Login(UnGatewayClient client, string username, string password, op
 /** Log out an user */
 function bool Logout(UnGatewayClient client)
 {
+	if (!client.PlayerController.PlayerReplicationInfo.bAdmin) return true;
 	if (!Level.Game.AccessControl.AdminLogout(client.PlayerController))
 	{
 		gateway.Logf("[Logout] failed", Name, gateway.LOG_INFO);

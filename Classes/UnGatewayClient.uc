@@ -1,7 +1,7 @@
 /**
 	UnGatewayClient
 	client for TCP based services linked in the Gateway system
-	$Id: UnGatewayClient.uc,v 1.5 2003/09/23 07:53:59 elmuerte Exp $
+	$Id: UnGatewayClient.uc,v 1.6 2003/09/26 08:28:41 elmuerte Exp $
 */
 class UnGatewayClient extends TCPLink abstract config;
 
@@ -49,23 +49,31 @@ event Closed()
 event ReceivedLine( string Line )
 {
 	local string x, tmp;
-	//local int i;
-	//while (line != "")
-	//{
-	//	i = InStr(line, Chr(13));
-	//	if (i == -1) InStr(line, Chr(10));
-	//	if (i == -1) i = Len(line);
-	//	tmp = Left(line, i);
-	//	line = Mid(line, i+1);
-		x = Right(Line, 1);
+	local int i;
+	while (line != "")
+	{
+		i = InStr(line, Chr(13));
+		if (i == -1) InStr(line, Chr(10));
+		if (i == -1) i = Len(line);
+		tmp = Left(line, i);
+		line = Mid(line, i+1);
+
+		x = Right(tmp, 1);
 		while ((x == Chr(10)) || (x == Chr(13)))
 		{
-			tmp = Left(Line, len(Line)-1);
-			x = Right(Line, 1);
+			tmp = Left(tmp, len(tmp)-1);
+			x = Right(tmp, 1);
 		}
-		interface.gateway.Logf("ReceivedLine:"@Line, Name, interface.gateway.LOG_DEBUG);	
-		if (Line != "") OnReceiveLine(Line);
-	//}
+		x = Left(tmp, 1);
+		while ((x == Chr(10)) || (x == Chr(13)))
+		{
+			tmp = Mid(tmp, 1);
+			x = Left(tmp, 1);
+		}
+
+		interface.gateway.Logf("ReceivedLine:"@tmp, Name, interface.gateway.LOG_DEBUG);	
+		if (tmp != "") OnReceiveLine(tmp);
+	}
 }
 
 /** don't override, use the delegate */

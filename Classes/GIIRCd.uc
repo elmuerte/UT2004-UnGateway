@@ -1,7 +1,7 @@
 /**
 	GIIRCd
 	IRC server
-	$Id: GIIRCd.uc,v 1.8 2003/09/23 07:53:59 elmuerte Exp $
+	$Id: GIIRCd.uc,v 1.9 2003/09/26 08:28:41 elmuerte Exp $
 */
 class GIIRCd extends UnGatewayInterface;
 
@@ -19,6 +19,14 @@ struct IRCUserRecord
 };
 var array<IRCUserRecord> IRCUsers;
 
+struct ChannelUserRecord
+{
+	var int uid;
+	var bool bOp;
+	var bool bVoice;
+	var bool bHalfOp;
+};
+
 struct LocalChannelRecord
 {
 	var string Name;		// channel name
@@ -31,14 +39,14 @@ struct LocalChannelRecord
 	var int Limit;
 	var int TimeStamp;
 	var array<string> Bans;
-	var array<int> Users; // pointer to the IRCUsers list
+	var array<ChannelUserRecord> Users; // pointer to the IRCUsers list
 };
 var array<LocalChannelRecord> Channels;
 
 function Create(GatewayDaemon gwd)
 {
 	Super.Create(gwd);
-	CreateChannel("&admin",, true, true);
+	CreateChannel("&admin", "Server administation channel", true, true);
 	CreateChannel("#"$gateway.hostaddress$"_"$Level.Game.GetServerPort(), Level.Game.GameReplicationInfo.ServerName@"-"@Level.Game.GameName@"-"@Level.Title);
 }
 
@@ -107,7 +115,7 @@ function int GetIRCUser(GCIRC client, optional bool bDontAdd)
 		if (IRCUsers[i].Client == client) return i;
 	}
 	if (bDontAdd) return -1;
-	gateway.Logf("[GetIRCUser] Creating IRC used:"@client.sUsername@client, Name, gateway.LOG_EVENT);
+	gateway.Logf("[GetIRCUser] Creating IRC user:"@client.sUsername$"!"$client.sUserhost, Name, gateway.LOG_EVENT);
 	IRCUsers.length = IRCUsers.length+1;
 	IRCUsers[IRCUsers.length-1].Nick = client.sUsername;
 	IRCUsers[IRCUsers.length-1].Userhost = client.sUserhost;

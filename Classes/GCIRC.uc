@@ -2,7 +2,7 @@
 	GCIRC
 	IRC client, spawned from GIIRCd
 	RFC: 1459
-	$Id: GCIRC.uc,v 1.7 2003/09/23 07:53:59 elmuerte Exp $
+	$Id: GCIRC.uc,v 1.8 2003/09/26 08:28:41 elmuerte Exp $
 */
 class GCIRC extends UnGatewayClient;
 
@@ -77,7 +77,7 @@ function bool IsIn(optional string channelname, optional int id)
 /** check if a channel name is valid */
 function bool checkValidChanName(string channel)
 {
-	if ((Left(channel, 1) != "#" && Left(channel, 1) != "&") || (InStr(channel, ",") > -1) || (InStr(channel, Chr(7))))
+	if ((Left(channel, 1) != "#" && Left(channel, 1) != "&") || (InStr(channel, ",") > -1) || (InStr(channel, Chr(7)) > -1))
 	{
 		return false;
 	}
@@ -320,8 +320,8 @@ function ircExecQUIT(optional string QuitMsg, optional bool bDontClose)
 
 function ircExecJOIN(string channel, optional string key)
 {
-	local int i, id;
-	if (checkValidChanName(channel))
+	local int id;
+	if (!checkValidChanName(channel))
 	{
 		SendIRC(channel@":ERR_BADCHANMASK", "476"); // ERR_BADCHANMASK
 		return;
@@ -340,7 +340,7 @@ function ircExecJOIN(string channel, optional string key)
 			return;
 		}
 		else {
-			id = CreateChannel(channel);
+			id = GIIRCd(Interface).CreateChannel(channel);
 		}
 	}
 
@@ -360,6 +360,10 @@ function ircExecJOIN(string channel, optional string key)
 		{
 			SendIRC(channel@":Cannot join channel (+b)", "474"); // ERR_BANNEDFROMCHAN
 		}
+		else if (GIIRCd(Interface).Channels[id].bAdmin && !PlayerController.PlayerReplicationInfo.bAdmin)
+		{
+			SendIRC(channel@":Cannot join channel (+b) (Admin only)", "474"); // ERR_BANNEDFROMCHAN
+		}
 		else if (InStr(GIIRCd(Interface).Channels[id].Mode, "i") > -1)
 		{
 			SendIRC(channel@":Cannot join channel (+i)", "473"); // ERR_INVITEONLYCHAN
@@ -368,7 +372,8 @@ function ircExecJOIN(string channel, optional string key)
 			Channels.length = Channels.length+1;
 			Channels[Channels.length-1].Channel = id;
 			GIIRCd(Interface).Channels[id].Users.length = GIIRCd(Interface).Channels[id].Users.length+1;
-			GIIRCd(Interface).Channels[id].Users[GIIRCd(Interface).Channels[id].Users.length-1] = ClientID;
+			GIIRCd(Interface).Channels[id].Users[GIIRCd(Interface).Channels[id].Users.length-1].uid = ClientID;
+			if (GIIRCd(Interface).Channels[id].Users.length == 1) GIIRCd(Interface).Channels[id].Users[GIIRCd(Interface).Channels[id].Users.length-1].bOp = true;
 			ircExecTOPIC(channel);
 			ircExecNAMES(channel);
 		}
@@ -402,10 +407,9 @@ function ircExecMODE(array<string> args)
 	//...
 }
 
-function ircExecTOPIC(string channel, optional string newTopic)
+function ircExecTOPIC(string channel, optional string newTopic, optional int id)
 {
-	local int id;
-	id = GIIRCd(Interface).GetChannel(channel);
+	if (channel != "") id = GIIRCd(Interface).GetChannel(channel);
 	if (!IsIn(, id))
 	{
 		SendIRC(channel@":You're not on that channel", "442"); // ERR_NOTONCHANNEL
@@ -426,9 +430,31 @@ function ircExecTOPIC(string channel, optional string newTopic)
 	}
 }
 
-function ircExecNAMES(string channel)
+function ircExecNAMES(optional string channel, optional int id)
 {
-	// ...
+	local int i;
+	local string tmp;
+
+	if (channel != "") id = GIIRCd(Interface).GetChannel(channel);
+	if (!IsIn(, id))
+	{
+		SendIRC(channel@":You're not on that channel", "442"); // ERR_NOTONCHANNEL
+		return;
+	}
+	for (i = 0; i < GIIRCd(Interface).Channels[id].Users.length; i++)
+	{
+		if (GIIRCd(Interface).Channels[id].Users[i].bOp) tmp $= "@";
+		else if (GIIRCd(Interface).Channels[id].Users[i].bHalfop) tmp $= "%";
+		else if (GIIRCd(Interface).Channels[id].Users[i].bVoice) tmp $= "+";
+		tmp $= GIIRCd(Interface).IRCUsers[GIIRCd(Interface).Channels[id].Users[i].uid].Nick$" ";
+		if (i % 10 == 0)
+		{
+			SendIRC(GIIRCd(Interface).Channels[id].Name@":"$tmp, "353"); // RPL_NAMREPLY
+			tmp = "";
+		}
+	}
+	if (tmp != "") SendIRC(GIIRCd(Interface).Channels[id].Name@":"$tmp, "353"); // RPL_NAMREPLY
+	SendIRC(GIIRCd(Interface).Channels[id].Name@":End of /NAMES list", "366"); // RPL_ENDOFNAMES
 }
 
 function ircExecVERSION(optional string server)
@@ -463,9 +489,18 @@ function ircExecKILL(string nick, string message)
 	//...
 }
 
-function ircExecLIST()
+function ircExecLIST(optional string mask)
 {
-	//...
+	local int i;	
+	SendIRC("Channel :Users  Name", "321"); // RPL_LISTSTART
+	for (i = 0; i < GIIRCd(Interface).Channels.length; i++)
+	{
+		if (InStr(GIIRCd(Interface).Channels[i].Name, "s") > -1) continue;
+		if (InStr(GIIRCd(Interface).Channels[i].Name, "p") > -1) continue;
+		// todo: check mask
+		SendIRC(GIIRCd(Interface).Channels[i].Name@GIIRCd(Interface).Channels[i].Users.length@":"$GIIRCd(Interface).Channels[i].Topic, "322"); // RPL_LIST
+	}
+	SendIRC(":End of /LIST", "323"); // RPL_LISTEND
 }
 
 defaultproperties
