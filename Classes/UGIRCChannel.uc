@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UGIRCChannel.uc,v 1.2 2004/05/08 21:49:33 elmuerte Exp $ -->
+	<!-- $Id: UGIRCChannel.uc,v 1.3 2004/05/11 10:25:22 elmuerte Exp $ -->
 *******************************************************************************/
 class UGIRCChannel extends Object;
 
@@ -165,4 +165,16 @@ static function bool checkValidChanName(string channel)
 		return false;
 	}
 	return true;
+}
+
+/** add a new ban */
+function bool AddBan(string mask)
+{
+	return false;
+}
+
+/** revoke a ban */
+function bool RevokeBan(string mask)
+{
+	return false;
 }

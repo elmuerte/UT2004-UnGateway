@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GIIRCd.uc,v 1.16 2004/05/09 18:43:43 elmuerte Exp $ -->
+	<!-- $Id: GIIRCd.uc,v 1.17 2004/05/11 10:25:22 elmuerte Exp $ -->
 *******************************************************************************/
 /*
 	TODO:
@@ -81,9 +81,12 @@ function LostClient(UnGatewayClient client)
 	{
 		if (Clients[i] == GCIRC(client))
 		{
-			IRCUsers[GCIRC(client).ClientID].bDead = true;
-			IRCUsers[GCIRC(client).ClientID].Client = none;
-			IRCUsers[GCIRC(client).ClientID].PC = none;
+			if (GCIRC(client).ClientID > -1)
+			{
+				IRCUsers[GCIRC(client).ClientID].bDead = true;
+				IRCUsers[GCIRC(client).ClientID].Client = none;
+				IRCUsers[GCIRC(client).ClientID].PC = none;
+			}
 			Clients.Remove(i, 1);
 			return;
 		}
@@ -179,7 +182,7 @@ function int GetSystemIRCUser(PlayerController PC, optional bool bDontAdd, optio
 	IRCUsers.length = IRCUsers.length+1;
 	IRCUsers[IRCUsers.length-1].Nick = GetUniqueName(fixname(PC.PlayerReplicationInfo.PlayerName));
 	IRCUsers[IRCUsers.length-1].RealName = PC.PlayerReplicationInfo.PlayerName;
-	IRCUsers[IRCUsers.length-1].Userhost = PC.Name$"@"$PC.GetPlayerNetworkAddress();
+	IRCUsers[IRCUsers.length-1].Userhost = PC.GetPlayerIDHash()$"@"$PC.GetPlayerNetworkAddress();
 	IRCUsers[IRCUsers.length-1].PC = PC;
 	if (UnGatewayPlayer(PC) != none)
 	{
@@ -365,7 +368,7 @@ function NotifyClientLeave(UnGatewayClient client)
 defaultproperties
 {
 	Ident="IRC/101"
-	CVSversion="$Id: GIIRCd.uc,v 1.16 2004/05/09 18:43:43 elmuerte Exp $"
+	CVSversion="$Id: GIIRCd.uc,v 1.17 2004/05/11 10:25:22 elmuerte Exp $"
 	AcceptClass=class'UnGateway.GCIRC'
 	IRCChannelClass=class'UnGateway.UGIRCChannel'
 }

@@ -8,7 +8,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCIRC.uc,v 1.18 2004/05/09 18:43:43 elmuerte Exp $ -->
+	<!-- $Id: GCIRC.uc,v 1.19 2004/05/11 10:25:22 elmuerte Exp $ -->
 *******************************************************************************/
 class GCIRC extends UnGatewayClient;
 
@@ -83,6 +83,12 @@ function bool IsIn(UGIRCChannel chan)
 		if (Channels[i] == chan) return true;
 	}
 	return false;
+}
+
+/** return true if the player is an admin */
+function bool IsAdmin()
+{
+	return PlayerController.PlayerReplicationInfo.bAdmin;
 }
 
 /** user is logging in */
@@ -177,7 +183,7 @@ state Loggedin
 									}
 									else {
 										SendIRC(":You are now an IRC operator", "381"); // RPL_YOUREOPER
-										if (GIIRCd(interface).IRCUserMode(ClientID, "o", true)) SendIRC("+o", "221"); //RPL_UMODEIS
+										if (GIIRCd(interface).IRCUserMode(ClientID, "o", true)) SendIRC("+o", "MODE"); //RPL_UMODEIS
 										for (i = 0; i < Channels.length; i++)
 										{
 											channels[i].SetChannelModeUser(ClientID, "o");
@@ -310,11 +316,12 @@ begin:
 	SendIRC(":Current local users: ... Max: ...", "265");
 	SendIRC(":Current global users: ... Max: ...", "252");
 	if (bShowMotd) ircExecMOTD();
-	if (PlayerController.PlayerReplicationInfo.bAdmin)
+	if (IsAdmin())
 	{
-		if (GIIRCd(interface).IRCUserMode(ClientID, "o", true)) SendIRC("+o", "221"); //RPL_UMODEIS
+		GIIRCd(interface).IRCUserMode(ClientID, "o", true);
 		SendIRC(":You are now an IRC operator", "381");
 	}
+	SendIRC("+"$GIIRCd(interface).IRCUsers[ClientID].Mode, "MODE");
 }
 
 ///////////////////////////////// IRC COMMANDS /////////////////////////////////
@@ -415,7 +422,7 @@ function ircExecJOIN(string channel, optional string key)
 			id.BroadcastMessage(":"$sUsername$"!"$sUserhost@"JOIN"@channel, self);
 			if (id.bSpecial)
 			{
-				if (PlayerController.PlayerReplicationInfo.bAdmin)
+				if (IsAdmin())
 				{
 					id.Users[id.Users.length-1].bOp = true;
 					id.BroadcastMessage(":"$interface.gateway.hostname@"MODE"@channel@"+o"@sUsername);
@@ -452,6 +459,9 @@ function ircExecPART(string channel)
 function ircExecMODE(array<string> args)
 {
 	local UGIRCChannel id;
+	local bool bGrant, bRevoke;
+	local int i;
+
 	if (Left(args[0], 1) == "#" || Left(args[0], 1) == "&")
 	{
 		// chan modes
@@ -472,7 +482,38 @@ function ircExecMODE(array<string> args)
 				}
 			}
 			else {
-				// set
+				bGrant = (Left(args[1], 1) == "+");
+				bRevoke = (Left(args[1], 1) == "-");
+				if (bGrant || bRevoke)
+				{
+					args[1] = Locs(Mid(args[1], 1));
+					if (!IsAdmin())
+					{
+						SendIRC(id.ChannelName@":You're not channel operator", "482"); //ERR_CHANOPRIVSNEEDED
+						return;
+					}
+				}
+				switch (args[1])
+				{
+					case "b":	if (bGrant)
+								{
+									if (id.AddBan(args[2])) id.BroadcastMessage(":"$sUsername$"!"$sUserhost@"MODE"@class'wArray'.static.Join(args, " "));
+								}
+								else if (bRevoke)
+								{
+									if (id.RevokeBan(args[2])) id.BroadcastMessage(":"$sUsername$"!"$sUserhost@"MODE"@class'wArray'.static.Join(args, " "));
+								}
+								else {
+									for (i = 0; i < id.Bans.length; i++)
+									{
+										SendIRC(id.ChannelName@id.Bans[i], "367"); //RPL_BANLIST
+									}
+									SendIRC(id.ChannelName@":End of channel ban list", "368"); //RPL_ENDOFBANLIST
+								}
+								break;
+
+					default:	SendIRC("MODE :Not enough parameters", "461"); //ERR_NEEDMOREPARAMS
+				}
 			}
 		}
 		else {
@@ -543,7 +584,7 @@ function ircExecVERSION(optional string server)
 	if (server == "")
 	{
 		SendIRC(":"$interface.gateway.hostname@"UnrealEngine2/"$Level.EngineVersion@Interface.gateway.Ident@Interface.Ident, "004");
-		SendIRC("PREFIX=(ov)@+ MODES=3 CHANTYPES=#& MAXCHANNELS="$MaxChannels$" NICKLEN=9 TOPICLEN=160 KICKLEN=160 NETWORK=... CHANMODES=... :are supported by this server", "004");
+		SendIRC("PREFIX=(ov)@+ MODES=1 CHANTYPES=#& MAXCHANNELS="$MaxChannels$" NICKLEN=20 TOPICLEN=160 KICKLEN=160 NETWORK=UnGateway CHANMODES=... :are supported by this server", "004");
 	}
 	else {
 		//...
@@ -693,7 +734,7 @@ function outputChat(coerce string pname, coerce string message, optional name Ty
 defaultproperties
 {
 	ClientID=-1
-	CVSversion="$Id: GCIRC.uc,v 1.18 2004/05/09 18:43:43 elmuerte Exp $"
+	CVSversion="$Id: GCIRC.uc,v 1.19 2004/05/11 10:25:22 elmuerte Exp $"
 	bShowMotd=true
 	MaxChannels=2
 	bAllowCreateChannel=false
