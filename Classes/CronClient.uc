@@ -1,13 +1,13 @@
 /*******************************************************************************
-	CronClient																	<br />
-	Dummy client for the cron daemon											<br />
-																				<br />
-	Authors:	Michiel 'El Muerte' Hendriks &lt;elmuerte@drunksnipers.com&gt;	<br />
-																				<br />
-	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
-	Released under the Open Unreal Mod License									<br />
-	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: CronClient.uc,v 1.4 2004/04/15 14:41:32 elmuerte Exp $ -->
+    CronClient                                                                  <br />
+    Dummy client for the cron daemon                                            <br />
+                                                                                <br />
+    Authors:    Michiel 'El Muerte' Hendriks &lt;elmuerte@drunksnipers.com&gt;  <br />
+                                                                                <br />
+    Copyright 2003, 2004 Michiel "El Muerte" Hendriks                           <br />
+    Released under the Open Unreal Mod License                                  <br />
+    http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense
+    <!-- $Id: CronClient.uc,v 1.5 2004/10/20 14:08:46 elmuerte Exp $ -->
 *******************************************************************************/
 class CronClient extends UnGatewayClient config;
 
@@ -23,41 +23,41 @@ var protected FileLog flog;
 
 function output(coerce string data, optional string ident, optional bool bDontWrapFirst)
 {
-	if (!bSilent)
-	{
-		if (bExternalLog) logf("Cron Output:"@ident$data);
-		else log(data, 'cron output');
-	}
+    if (!bSilent)
+    {
+        if (bExternalLog) logf("Cron Output:"@ident$data);
+        else log(data, 'cron output');
+    }
 }
 
 function outputError(string errormsg, optional string ident, optional bool bDontWrapFirst)
 {
-	if (bExternalLog) logf("Cron Error:"@ident$errormsg);
-	else log(errormsg, 'cron error');
+    if (bExternalLog) logf("Cron Error:"@ident$errormsg);
+    else log(errormsg, 'cron error');
 }
 
 protected function CreateLog()
 {
-	flog = spawn(class'FileLog');
-	flog.OpenLog(getLogFilename());
+    flog = spawn(class'FileLog');
+    flog.OpenLog(getLogFilename());
 }
 
 protected function Logf(coerce string data)
 {
-	if (flog == none) CreateLog();
-	flog.Logf(data);
+    if (flog == none) CreateLog();
+    flog.Logf(data);
 }
 
 /**
-	return the filename to use for the log file. The following formatting rules are accepted:
-	%P		server port
-	%Y		year
-	%M		month
-	%D		day
-	%H		hour
-	%I		minute
-	%S		second
-	%W		day of the week
+    return the filename to use for the log file. The following formatting rules are accepted:
+    %P      server port
+    %Y      year
+    %M      month
+    %D      day
+    %H      hour
+    %I      minute
+    %S      second
+    %W      day of the week
 */
 function string GetLogFilename()
 {
@@ -77,7 +77,7 @@ function string GetLogFilename()
 
 defaultProperties
 {
-	CVSversion="$Id: CronClient.uc,v 1.4 2004/04/15 14:41:32 elmuerte Exp $"
-	sUsername="Cron Daemon"
-	LogFilename="crondaemon_%P"
+    CVSversion="$Id: CronClient.uc,v 1.5 2004/10/20 14:08:46 elmuerte Exp $"
+    sUsername="Cron Daemon"
+    LogFilename="crondaemon_%P"
 }
