@@ -2,7 +2,7 @@
 	GCIRC
 	IRC client, spawned from GIIRCd
 	RFC: 1459
-	$Id: GCIRC.uc,v 1.3 2003/09/08 16:26:36 elmuerte Exp $
+	$Id: GCIRC.uc,v 1.4 2003/09/08 20:01:08 elmuerte Exp $
 */
 class GCIRC extends UnGatewayClient;
 
@@ -91,15 +91,21 @@ state Loggedin
 {
 	function procIRC(coerce string line)
 	{
-		local array<string> input;
+		local array<string> input, data1, data2;
+		local int i;
 
 		if (split(line, " ", input) < 1) return; // always wrong
 		input[0] = caps(input[0]);
 		switch (input[0])
 		{
+			case "NICK":		if (input.length < 2) SendIRC(":ERR_NONICKNAMEGIVEN", "431");
+											else GIIRCd(Interface).CheckNickName(Self, input[1]); // will check the name and assign it 
+											break;
+			case "PASS":		SendIRC(":ERR_ALREADYREGISTRED", "462"); break;
+			case "USER":		SendIRC(":ERR_ALREADYREGISTRED", "462"); break;
 			case "PING":		if (input.length < 2) SendIRC(":ERR_NOORIGIN", "409");
 											SendText("PONG"@input[1]); break;
-			case "MOTD":		ShowMOTD(); break;
+			case "MOTD":		ircExecMOTD(); break;
 			case "OPER":		if (input.length < 3) SendIRC("OPER :ERR_NEEDMOREPARAMS", "461");
 											else {
 												//sUsername = input[1]; // don't set the username
@@ -108,7 +114,115 @@ state Loggedin
 												{
 													SendIRC(":ERR_PASSWDMISMATCH", "464");
 												}
-												// ....
+												else {
+													SendIRC(":RPL_YOUREOPER", "...");
+												}
+											}
+											break;
+			case "QUIT":		ircExecQUIT(Mid(line, 6)); break;
+			case "SQUIT":		break; // NOT YET supported
+			case "JOIN":		if (input.length < 2) SendIRC("JOIN :ERR_NEEDMOREPARAMS", "461");
+											else {
+												split(input[1], ",", data1);
+												if (input.length > 2) split(input[1], ",", data2);
+												for (i = 0; i < data1.length; i++)
+												{
+													if (data2.length > i) ircExecJOIN(data1[i], data2[i]);
+														else ircExecJOIN(data1[i]);
+												}
+											}
+											break;
+			case "PART":		if (input.length < 2) SendIRC("PART :ERR_NEEDMOREPARAMS", "461");
+											else {
+												split(input[1], ",", data1);
+												for (i = 0; i < data1.length; i++)
+												{
+													ircExecPART(data1[i]);
+												}
+											}
+											break;
+			case "MODE":		if (input.length < 2) SendIRC("MODE :ERR_NEEDMOREPARAMS", "461");
+											else {
+												input.remove(0, 1);
+												ircExecMODE(input);
+											}
+											break;
+			case "TOPIC":		if (input.length < 2) SendIRC("TOPIC :ERR_NEEDMOREPARAMS", "461");
+											else {
+												i = InStr(line, ":");
+												if (i > -1)	ircExecTOPIC(input[1], Mid(line, i));
+													else ircExecTOPIC(input[1]);
+											}
+											break;
+			case "NAMES":		if (input.length > 1)
+											{
+												split(input[1], ",", data1);
+												for (i = 0; i < data1.length; i++)
+												{
+													ircExecNAMES(data1[i]);
+												}
+											}
+											else {
+												for (i = 0; i < Channels.length; i++) ircExecNAMES(Channels[i].Name);
+											}
+											break;
+			//case "LIST":		not supported, yet
+			//case "INVITE":	not supported
+			case "KICK":		break; // not yet implemented
+			case "VERSION":	if (input.length > 1) ircExecVERSION(input[1]);
+											else ircExecVERSION();
+											break;
+			//case "STATS":		not supported
+			//case "LINKS":		not supported, yet
+			//case "TIME":		not supported, yet
+			//case "CONNECT":	not supported, yet
+			//case "TRACE":		not supported
+			//case "ADMIN":		not supported, yet
+			//case "INFO":		not supported, yet
+			case "PRIVMSG":	if (input.length < 3) SendIRC("TOPIC :ERR_NEEDMOREPARAMS", "461");
+											else {
+												split(input[1], ",", data1);
+												i = InStr(line, ":");
+												if (i == -1)
+												{
+													SendIRC(":ERR_NOTEXTTOSEND", "...");
+													break;
+												}
+												input[2] = Mid(line, i);
+												if (input[2] == "")
+												{
+													SendIRC(":ERR_NOTEXTTOSEND", "...");
+													break;
+												}
+												for (i = 0; i < data1.length; i++)
+												{
+													ircExecPRIVMSG(data1[i], input[2]);
+												}
+											}
+											break;
+			case "NOTICE":	if (input.length < 3) break;
+											else {
+												split(input[1], ",", data1);
+												i = InStr(line, ":");
+												if (i == -1) break;
+												input[2] = Mid(line, i);
+												if (input[2] == "") break;
+												for (i = 0; i < data1.length; i++)
+												{
+													ircExecNOTICE(data1[i], input[2]);
+												}
+											}
+											break;
+			case "WHO":			if (input.length == 1) ircExecWHO();
+											else if (input.length == 2) ircExecWHO(input[1]);
+											else if (input.length == 3) ircExecWHO(input[1], (input[2] == "o"));
+											break;
+			case "WHOIS":		// not yet implemented
+											break;
+			//case "WHOWAS":		not supported
+			case "KILL":		if (input.length < 3) SendIRC("KILL :ERR_NEEDMOREPARAMS", "461");
+											else {
+												ircExecKILL(input[1], "...");
 											}
 											break;
 			default:				SendIRC(input[0]@":ERR_UNKNOWNCOMMAND", "421");
@@ -120,8 +234,7 @@ begin:
 	SendIRC(":Welcome to"@Level.GRI.ServerName@sUsername$"!"$sUserhost, "001");
 	SendIRC(":Your host is"@interface.gateway.hostname$", running"@Level.EngineVersion, "002");
 	SendIRC(":This server was created"@Interface.Gateway.CreationTime, "003");
-	SendIRC(":"$interface.gateway.hostname@"UnrealWarfare/"$Level.EngineVersion@Interface.gateway.Ident@Interface.Ident, "004");
-	SendIRC("MAP PREFIX=(ov)@+ MODES=3 CHANTYPES=#& MAXCHANNELS=2 NICKLEN=9 TOPICLEN=160 KICKLEN=160 NETWORK=... CHANMODES=... :are supported by this server", "004");
+	ircExecVERSION();
 	SendIRC(":There are ... users and ... services on ... servers", "251");
 	SendIRC("... :operators online", "252");
 	SendIRC("... :unknown connections", "253");
@@ -129,10 +242,10 @@ begin:
 	SendIRC(":I have ... users, 0 services and ... servers", "255");
 	SendIRC(":Current local users: ... Max: ...", "265");
 	SendIRC(":Current global users: ... Max: ...", "252");
-	if (bShowMotd) ShowMOTD();
+	if (bShowMotd) ircExecMOTD();
 }
 
-function ShowMOTD()
+function ircExecMOTD()
 {
 	local int i;
 	if (MOTD.length == 0) 
@@ -147,6 +260,67 @@ function ShowMOTD()
 		SendIRC(":-"@MOTD[i], "372");
 	}
 	SendIRC(":End of MOTD command.", "376");
+}
+
+function ircExecQUIT(optional string QuitMsg, optional bool bDontClose)
+{
+	if (QuitMsg == "") QuitMsg = sUsername;
+	// TODO: broadcast mesg
+	if (!bDontClose) Close();
+}
+
+function ircExecJOIN(string channel, optional string key)
+{
+	//..
+}
+
+function ircExecPART(string channel)
+{
+	//..
+}
+
+function ircExecMODE(array<string> args)
+{
+	//...
+}
+
+function ircExecTOPIC(string channel, optional string newTopic)
+{
+	// ...
+}
+
+function ircExecNAMES(string channel)
+{
+	// ...
+}
+
+function ircExecVERSION(optional string server)
+{
+	if (server == "")
+	{
+		SendIRC(":"$interface.gateway.hostname@"UnrealWarfare/"$Level.EngineVersion@Interface.gateway.Ident@Interface.Ident, "004");
+		SendIRC("PREFIX=(ov)@+ MODES=3 CHANTYPES=#& MAXCHANNELS=2 NICKLEN=9 TOPICLEN=160 KICKLEN=160 NETWORK=... CHANMODES=... :are supported by this server", "004");
+	}
+}
+
+function ircExecPRIVMSG(string receipt, string text)
+{
+	// ...
+}
+
+function ircExecNOTICE(string receipt, string text)
+{
+	// ...
+}
+
+function ircExecWHO(optional string mask, optional bool bOnlyOps)
+{
+	//...
+}
+
+function ircExecKILL(string nick, string message)
+{
+	//...
 }
 
 defaultproperties
@@ -186,6 +360,4 @@ defaultproperties
 	MOTD[30]="   For more information about UnGateway visit the homepage:"
 	MOTD[31]="       http://ungateway.drunksnipers.com"
 	MOTD[32]=""
-
-
 }

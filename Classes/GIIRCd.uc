@@ -1,7 +1,7 @@
 /**
 	GIIRCd
 	IRC server
-	$Id: GIIRCd.uc,v 1.4 2003/09/08 16:26:36 elmuerte Exp $
+	$Id: GIIRCd.uc,v 1.5 2003/09/08 20:01:08 elmuerte Exp $
 */
 class GIIRCd extends UnGatewayInterface;
 
@@ -36,6 +36,7 @@ function LostClient(UnGatewayClient client)
 	{
 		if (Clients[i] == GCIRC(client))
 		{
+			GCIRC(client).ircExecQuit(, false); // just to broadcast
 			Clients.Remove(i, 1);
 			return;
 		}
