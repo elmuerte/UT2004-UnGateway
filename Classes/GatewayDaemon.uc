@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GatewayDaemon.uc,v 1.13 2004/05/09 18:43:43 elmuerte Exp $ -->
+	<!-- $Id: GatewayDaemon.uc,v 1.14 2004/05/31 18:55:07 elmuerte Exp $ -->
 *******************************************************************************/
 class GatewayDaemon extends Info config;
 
@@ -74,6 +74,9 @@ var localized string PICat;
 var localized string PILabel[5];
 var localized string PIDescription[5];
 
+/** array with classes that should get a play info call from us */
+var protected array< class<Info> > PIClasses;
+
 /** Spawn all classes*/
 event PreBeginPlay()
 {
@@ -93,6 +96,8 @@ event PreBeginPlay()
 	UGAuth = class<UnGatewayAuth>(DynamicLoadObject(AuthClass, class'Class'));
 	if (UGAuth != none)
 	{
+		PIClasses[PIClasses.length] = UGAuth;
+
 		Auth = spawn(UGAuth, Self);
 		Auth.Create(self);
 	}
@@ -106,6 +111,7 @@ event PreBeginPlay()
 		UGI = class<UnGatewayInterface>(DynamicLoadObject(InterfaceClasses[i], class'Class', true));
 		if (UGI != none)
 		{
+			PIClasses[PIClasses.length] = UGI;
 			Interfaces.length = Interfaces.length+1;
 			Interfaces[Interfaces.length-1] = spawn(UGI, Self);
 			Interfaces[Interfaces.length-1].Create(Self);
@@ -130,6 +136,17 @@ event PreBeginPlay()
 		}
 	}
 	Logf("[PreBeginPlay] I am:"@computername$"@"$hostname$"("$hostaddress$")", Name, LOG_INFO);
+}
+
+event Destroyed()
+{
+	local int i;
+	super.Destroyed();
+	for (i = 0; i < Applications.length; i++)
+	{
+		Applications[i].Destroy();
+		Applications[i] = none;
+	}
 }
 
 /** Log in an user */
@@ -250,12 +267,18 @@ function NotifyClientLeave(UnGatewayClient client)
 
 static function FillPlayInfo(PlayInfo PlayInfo)
 {
+	local int i;
 	super.FillPlayInfo(PlayInfo);
-	PlayInfo.AddSetting(default.PICat, "Verbose", default.PILabel[0], 255, 255, "Text", "3;0:255",,,true);
-	PlayInfo.AddSetting(default.PICat, "AuthClass", default.PILabel[1], 255, 1, "Text",,,,true);
-	PlayInfo.AddSetting(default.PICat, "InterfaceClasses", default.PILabel[2], 255, 1, "Text",,,,true);
-	PlayInfo.AddSetting(default.PICat, "ApplicationClasses", default.PILabel[3], 255, 1, "Text",,,,true);
-	PlayInfo.AddSetting(default.PICat, "CmdAliases", default.PILabel[4], 255, 1, "Text",,,,true);
+	PlayInfo.AddSetting(default.PICat, "Verbose", 				default.PILabel[0], 255, 255, "Text", "3;0:255",,,true);
+	PlayInfo.AddSetting(default.PICat, "AuthClass", 			default.PILabel[1], 255, 1, "Text", "128",,,true);
+	PlayInfo.AddSetting(default.PICat, "InterfaceClasses", 		default.PILabel[2], 255, 1, "Custom",,,,true);
+	PlayInfo.AddSetting(default.PICat, "ApplicationClasses", 	default.PILabel[3], 255, 1, "Custom",,,,true);
+	PlayInfo.AddSetting(default.PICat, "CmdAliases", 			default.PILabel[4], 255, 1, "Custom",,,,true);
+
+	for (i = 0; i < default.PIClasses.Length; i++)
+	{
+		default.PIClasses[i].static.FillPlayInfo(PlayInfo);
+	}
 }
 
 static event string GetDescriptionText(string PropName)
@@ -280,8 +303,8 @@ defaultproperties
 	LOG_EVENT=8
 	LOG_DEBUG=128
 
-	Ident="UnGateway/102"
-	CVSversion="$Id: GatewayDaemon.uc,v 1.13 2004/05/09 18:43:43 elmuerte Exp $"
+	Ident="UnGateway/103"
+	CVSversion="$Id: GatewayDaemon.uc,v 1.14 2004/05/31 18:55:07 elmuerte Exp $"
 	AuthClass="UnGateway.GAuthSystem"
 	msgUnauthorized="You are not authorized to use this command"
 

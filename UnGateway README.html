@@ -77,14 +77,14 @@ TH {
 <div align="center">
 <big>
 <h1>UnGateway</h1>
-version 102 Beta<br />
+version 103 Beta<br />
 Michiel "El Muerte" Hendriks<br />
 elmuerte@drunksnipers.com<br />
 <a href="http://ungateway.elmuerte.com">http://ungateway.elmuerte.com</a><br />
 </big>
 </div>
 
-<h2>Introduction</h2>
+<h1>Introduction</h1>
 <p>
 UnGateway is a system that provides additional methods for server 
 administration. It's a base system that can easily be extended to support
@@ -111,7 +111,7 @@ Not every function of the IRC protocol has been implemented, but at the moment
 it's functional.
 </p>
 
-<h2>Installation</h2>
+<h1>Installation</h1>
 Copy the .u and .int files to the System directory.<br />
 Add the following to your system configuration (UT2004.ini):
 <pre>
@@ -120,8 +120,8 @@ ServerActors=UnGateway.GatewayDaemon
 </pre>
 This is all you need to install the system. Now you will have to configure the interfaces and applications.
 
-<h2>Configuration</h2>
-<h3>Applications</h3>
+<h1>Configuration</h1>
+<h2>Applications</h2>
 <p>
 Applications contain the commands you can enter into the system. There are a couple of application included with the system.<br />
 To install a application to have to add it to the application list of the GatewatDaemon in the system configuration:
@@ -158,7 +158,7 @@ The following application classes are included with the system:
 For an overview of all available commands and some additional information checkt the UnGateway-help.html file
 </p>
 
-<h3>Interfaces</h3>
+<h2>Interfaces</h2>
 <p>
 Out of the box UnGateway doesn't do much. You need to configure interfaces and 
 applications that are available. To add an interface add the following to your 
@@ -185,7 +185,7 @@ The following interface classes are available:
 </table>
 </p>
 
-<h3>Other options</h3>
+<h2>Other options</h2>
 Besides the interfaces and the applications you can also change the following setting. However, most of these don't require any changes.
 <pre>
 [UnGateway.GatewayDaemon]
@@ -207,7 +207,7 @@ CmdAliases=(alias="p",command="players %@")
 	<dd>This will allow you to create aliases for certain commands. You can have as many aliases as you want, you can only use real commands in the command value of the alias. Aliases have a higher priority than the actual commands. these aliases are system wide, so every user can use these aliases. By default no aliases have been configured.</dd>
 </dl>
 
-<h3>General interface configuration</h3>
+<h2>General interface configuration</h2>
 Each interface has the following configuration options. Additional configuration options may be available per interface.
 
 <pre>
@@ -234,10 +234,10 @@ AccessPolicy=(hostmask="*",policy=AP_Allow)
 	The policy can either be <code>AP_Allow</code> or <code>AP_Deny</code></dd>
 </dl>
 
-<h2>Application configuration</h2>
+<h1>Application configuration</h1>
 Some applications have configurable options. Unless stated otherwise, all configurations belong in the system configuration.
 
-<h3>UnGateway.GAppCron</h3>
+<h2>UnGateway.GAppCron</h2>
 <p>
 <pre>
 [UnGateway.GAppCron]
@@ -249,7 +249,7 @@ CronClass=UnGateway.Cron
 </dl>
 </p>
 
-<h4>UnGateway.Cron</h4>
+<h3>UnGateway.Cron</h3>
 <p>
 <pre>
 [UnGateway.Cron]
@@ -320,7 +320,7 @@ Crontab=(Command="somecommand",Type=EC_Delay,Time="5",Desc="added by Admin",bDis
 </dl>
 </p>
 
-<h4>UnGateway.CronClient</h4>
+<h3>UnGateway.CronClient</h3>
 <p>
 <pre>
 [UnGateway.CronClient]
@@ -354,13 +354,13 @@ LogFilename="crondaemon_%P"
 </dl>
 </p>
 
-<h2>Interface configuration</h2>
+<h1>Interface configuration</h1>
 Most interfaces (or it's client handlers) have additional configuration options.
 
-<h3>UnGateway.GITelnetd</h3>
+<h2>UnGateway.GITelnetd</h2>
 No additional configuration options for the interface. But the client handler has some options.
 
-<h4>UnGateway.GCTelnet</h4>
+<h3>UnGateway.GCTelnet</h3>
 <pre>
 [UnGateway.GCTelnet]
 CommandPrompt="%username%@%computername%:~$ "
@@ -443,10 +443,10 @@ MOTD=...
 	<dd>The Messsage Of The Day.</dd>
 </dl>
 
-<h3>UnGateway.GIIRCd</h3>
+<h2>UnGateway.GIIRCd</h2>
 No additional configuration options for the interface. But the client handler has some options.
 
-<h4>UnGateway.GCIRC</h4>
+<h3>UnGateway.GCIRC</h3>
 <pre>
 [UnGateway.GCIRC]
 bShowMotd=true
@@ -475,10 +475,10 @@ MOTD=...
 	<dd>The message of the day. You can use the following replacements: %hostname%, %channels%</dd>
 </dl>
 
-<h2>Usage</h2>
+<h1>Usage</h1>
 Ofcourse each interface work differently.
 
-<h3>Telnet</h3>
+<h2>Telnet</h2>
 <p>
 Any telnet client should work with the telnet server, however for MS Window I advise you to use the free client PuTTY. It's much better than the standard MS Telnet client.
 </p>
@@ -512,20 +512,20 @@ By default the internal pager is enbaled. This means if a command shows more inf
 </p>
 
 
-<h3>IRC</h3>
+<h2>IRC</h2>
 <p>
 The IRC server works pretty much like any other IRC server. However not all functionality is has been implemented.<br />
 By default two channels are created, the game channel and the admin channel (&Admin). The name of the game channel is contructed from the server's IP and port. By default the available IRC channels are listed in the MOTD, otherwise you can use the <code>/list</code> command to list all available channels.
 </p>
 
-<h4>Game channel</h4>
+<h3>Game channel</h3>
 The game channel is much like a normal IRC channel, by default everything you say will be said on the server, and vice versa. The players in the game join and part this channel automatically.
 
-<h4>Admin channel (&Admin)</h4>
+<h3>Admin channel (&Admin)</h3>
 The admin channel is a special channel (and only local on a server) where you can enter the UnGateway commands. These commands have to be prefixed with a <code>.</code> (a period). Commands not prefixed with a <code>.</code> will just be said on the admin channel, other IRC admins logged in on this channel will also see this.<br />
 The admin channel is only available to logged in admins.
 
-<h4>Logging in</h4>
+<h3>Logging in</h3>
 There are two ways you can log in. If you specify a password during login the system will automatically try to log you in as an admin. If you don't specify a password you will log in as a normal user. <br />
 To log in as an admin you will have to use the <code>/oper</code> command.<br />
 When you are logged in as an IRC Oper/Admin you will be able to join the Admin channel, and you can see the complete user details when using <code>/whois</code>.

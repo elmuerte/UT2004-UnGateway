@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UGIRCChannel.uc,v 1.4 2004/05/21 20:56:34 elmuerte Exp $ -->
+	<!-- $Id: UGIRCChannel.uc,v 1.5 2004/05/31 18:55:07 elmuerte Exp $ -->
 *******************************************************************************/
 class UGIRCChannel extends Object;
 
@@ -52,6 +52,12 @@ struct ChannelUserRecord
 };
 /** information about the users in this channel */
 var array<ChannelUserRecord> Users;
+
+/** perform destroy */
+function Destroy()
+{
+	IRCd = none;
+}
 
 /** return if a userhost is banned from a channel */
 function bool IsBanned(string UserHost)

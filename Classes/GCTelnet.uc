@@ -10,7 +10,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCTelnet.uc,v 1.29 2004/05/24 17:07:33 elmuerte Exp $	-->
+	<!-- $Id: GCTelnet.uc,v 1.30 2004/05/31 18:55:07 elmuerte Exp $	-->
 *******************************************************************************/
 /*
 	TODO:
@@ -1398,7 +1398,7 @@ function endRequestInput(UnGatewayApplication app)
 static function FillPlayInfo(PlayInfo PlayInfo)
 {
 	super.FillPlayInfo(PlayInfo);
-	PlayInfo.AddSetting(default.PICat, "CommandPrompt", default.PILabel[0], 128, 1, "Text");
+	PlayInfo.AddSetting(default.PICat, "CommandPrompt", default.PILabel[0], 128, 1, "Text", "256");
 	PlayInfo.AddSetting(default.PICat, "bShowMotd", default.PILabel[1], 128, 1, "Check");
 	// adding MOTD crashes when it contains a lot of data
 	//PlayInfo.AddSetting(default.PICat, "MOTD", default.PILabel[2], 128, 1, "Text");
@@ -1408,7 +1408,7 @@ static function FillPlayInfo(PlayInfo PlayInfo)
 	PlayInfo.AddSetting(default.PICat, "bDisableAuth", default.PILabel[6], 255, 255, "Check");
 	PlayInfo.AddSetting(default.PICat, "bEnablePager", default.PILabel[7], 64, 1, "Check");
 	PlayInfo.AddSetting(default.PICat, "bSaveHistory", default.PILabel[8], 64, 1, "Check");
-	PlayInfo.AddSetting(default.PICat, "CommandHistoryClass", default.PILabel[9], 128, 1, "Text");
+	PlayInfo.AddSetting(default.PICat, "CommandHistoryClass", default.PILabel[9], 128, 1, "Text", "256");
 	PlayInfo.AddSetting(default.PICat, "ChatMode", default.PILabel[10], 128, 1, "Select", default.PIData[0]);
 }
 
@@ -1433,7 +1433,7 @@ static event string GetDescriptionText(string PropName)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.29 2004/05/24 17:07:33 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.30 2004/05/31 18:55:07 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0

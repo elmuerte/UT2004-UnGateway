@@ -8,7 +8,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GAppCron.uc,v 1.4 2004/04/15 07:56:54 elmuerte Exp $ -->
+	<!-- $Id: GAppCron.uc,v 1.5 2004/05/31 18:55:07 elmuerte Exp $ -->
 *******************************************************************************/
 
 class GAppCron extends UnGatewayApplication config;
@@ -32,6 +32,15 @@ function Create()
 {
 	super.Create();
 	SummonCronDaemon();
+}
+
+function Destroy()
+{
+	if (Cron != none)
+	{
+		Cron.Destroy();
+		Cron = none;
+	}
 }
 
 /** create the Cron daemon */

@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UnGatewayApplication.uc,v 1.11 2004/04/26 21:15:24 elmuerte Exp $ -->
+	<!-- $Id: UnGatewayApplication.uc,v 1.12 2004/05/31 18:55:07 elmuerte Exp $ -->
 *******************************************************************************/
 class UnGatewayApplication extends Object within GatewayDaemon abstract;
 
@@ -42,6 +42,9 @@ function Create()
 		CmdLookupTable[CmdLookupTable.length-1].Permission = Commands[i].Permission;
 	}
 }
+
+/** perform clean up if needed */
+function Destroy();
 
 /**
 	Execute this command, called from the gateway.
@@ -139,5 +142,5 @@ function RequestInputResult(UnGatewayClient client, coerce string result);
 
 defaultproperties
 {
-	innerCVSversion="$Id: UnGatewayApplication.uc,v 1.11 2004/04/26 21:15:24 elmuerte Exp $"
+	innerCVSversion="$Id: UnGatewayApplication.uc,v 1.12 2004/05/31 18:55:07 elmuerte Exp $"
 }

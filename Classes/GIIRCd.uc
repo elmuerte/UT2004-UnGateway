@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GIIRCd.uc,v 1.19 2004/05/24 17:07:33 elmuerte Exp $ -->
+	<!-- $Id: GIIRCd.uc,v 1.20 2004/05/31 18:55:07 elmuerte Exp $ -->
 *******************************************************************************/
 
 class GIIRCd extends UnGatewayInterface config;
@@ -58,6 +58,18 @@ function Create(GatewayDaemon gwd)
 	AdminChannel = CreateChannel(AdminChannelName, "Server administation channel - prefix message with a '.' to execute commands", true, true, true);
 	GameChannelName = "#"$gateway.hostaddress$"_"$Level.Game.GetServerPort();
 	GameChannel = CreateChannel(GameChannelName, Level.Game.GameReplicationInfo.ServerName@"-"@Level.Game.GameName@"-"@Level.Title,,,true);
+}
+
+/** perform additional clean up */
+event Destroyed()
+{
+	local int i;
+	super.Destroyed();
+	for (i = 0; i < Channels.length; i++)
+	{
+		Channels[i].Destroy();
+		Channels[i] = none;
+	}
 }
 
 /** register the new client */
@@ -395,7 +407,7 @@ function NotifyClientLeave(UnGatewayClient client)
 defaultproperties
 {
 	Ident="IRC/101"
-	CVSversion="$Id: GIIRCd.uc,v 1.19 2004/05/24 17:07:33 elmuerte Exp $"
+	CVSversion="$Id: GIIRCd.uc,v 1.20 2004/05/31 18:55:07 elmuerte Exp $"
 	AcceptClass=class'UnGateway.GCIRC'
 	IRCChannelClass=class'UnGateway.UGIRCChannel'
 }
