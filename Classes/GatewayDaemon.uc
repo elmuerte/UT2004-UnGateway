@@ -1,7 +1,7 @@
 /**
 	GatewayDaemon
 	Central Server
-	$Id: GatewayDaemon.uc,v 1.3 2003/12/30 12:24:47 elmuerte Exp $
+	$Id: GatewayDaemon.uc,v 1.4 2004/01/03 10:44:06 elmuerte Exp $
 */
 class GatewayDaemon extends Info config;
 
@@ -124,9 +124,9 @@ function Logf(coerce string Msg, name LogName, byte Level)
 
 /**
 	execute a command
-	if bNoConsole is true don't try to execute the command on the console.
+	if bTryConsole is false (recommended) don't try to execute the command on the console.
 */
-function bool ExecCommand(UnGatewayClient client, array<string> cmd, optional bool bNoConsole)
+function bool ExecCommand(UnGatewayClient client, array<string> cmd, optional bool bTryConsole)
 {
 	local int i;
 	if (cmd.length == 0) return false;
@@ -137,10 +137,7 @@ function bool ExecCommand(UnGatewayClient client, array<string> cmd, optional bo
 			return CmdLookupTable[i].App.ExecCmd(client, cmd);
 		}
 	}
-	if (!bNoConsole)
-	{
-		// do console
-	}
+	if (bTryConsole) ConsoleCommand(class'wArray'.static.Join(cmd));
 	return false;
 }
 
@@ -166,5 +163,5 @@ defaultproperties
 
 	AuthClass="UnGateway.GAuthSystem"
 	Ident="UnGateway/100"
-	CVSversion="$Id: GatewayDaemon.uc,v 1.3 2003/12/30 12:24:47 elmuerte Exp $"
+	CVSversion="$Id: GatewayDaemon.uc,v 1.4 2004/01/03 10:44:06 elmuerte Exp $"
 }

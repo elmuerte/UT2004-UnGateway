@@ -1,9 +1,9 @@
 /**
-	GCTelnet
-	Telnet client, spawned from GITelnetd
-	Note: windows telnet client should use ANSI not VT100
-	RFC: 318, 513, 764, 854, 855, 857, 858, 859, 884, 930, 1073, 1091, 1116, 1572
-	$Id: GCTelnet.uc,v 1.9 2004/01/02 21:43:56 elmuerte Exp $
+	GCTelnet																		<br />
+	Telnet client, spawned from GITelnetd											<br />
+	Note: windows telnet client should use ANSI not VT100							<br />
+	RFC: 318, 513, 764, 854, 855, 857, 858, 859, 884, 930, 1073, 1091, 1116, 1572	<br />
+	$Id: GCTelnet.uc,v 1.10 2004/01/03 10:44:06 elmuerte Exp $						<br />
 */
 class GCTelnet extends UnGatewayClient;
 
@@ -107,8 +107,7 @@ var config bool bEnablePager;
 /** cursor position: x,y, init-x */
 var protected int cursorpos[3];
 /**
-	busy processing special sequences
-	current unsupported and broken
+	busy processing special sequences, this is not completely supported
 */
 var bool bProcEsc, bProcTelnet;
 
@@ -154,6 +153,45 @@ enum ECursorKey
 	ECK_Delete,
 };
 
+/** ANSI color codes, EC_Default is is the default color used for background or foreground */
+enum EColor
+{
+	EC_None,
+	EC_Black,
+	EC_Red,
+	EC_Green,
+	EC_Brown,
+	EC_Blue,
+	EC_Magenta,
+	EC_Cyan,
+	EC_White,
+	EC_Default,
+};
+
+/** tristate boolean value */
+enum TriState
+{
+	TS_Unset,
+	TS_False,
+	TS_True,
+};
+
+/** structure containing formatting rules to be used with the Format function */
+struct ConsoleFont
+{
+	var EColor Font;
+	var EColor Background;
+	/** 0 = unset, 1 = normal; 2 = half bright; 3 = bold */
+	var byte Intensity;
+	var TriState Blink;
+	var TriState Underline;
+	var TriState Reverse;
+	/** don't reset the formatting at the end of the line */
+	var bool NoReset;
+	/** plain reset */
+	var bool Reset;
+};
+
 /** called from defReceiveInput to handle escape codes */
 delegate int OnEscapeCode(int pos, int Count, byte B[255])
 {
@@ -162,6 +200,9 @@ delegate int OnEscapeCode(int pos, int Count, byte B[255])
 
 /** called from defProcEscape when a cursor key is used */
 delegate OnCursorKey(ECursorKey Key);
+
+/** called from defProcEscape when a meta key is used: Alt+key or Esc+key */
+delegate OnMetaKey(string key);
 
 event Accepted()
 {
@@ -356,6 +397,12 @@ function int defProcEscape(int pos, int Count, byte B[255])
 			default:	interface.gateway.Logf("[defProcEscape] Unhandled escape code:"@B[pos], Name, interface.gateway.LOG_DEBUG);
 		}
 	}
+	else if (B[pos] > 31 && B[pos] < 127)
+	{
+		length++;
+		OnMetaKey(Chr(B[pos]));
+		interface.gateway.Logf("[defProcEscape] 'Alt+"$Chr(B[pos])$"'", Name, interface.gateway.LOG_DEBUG);
+	}
 	bProcEsc = false;
 	return length;
 }
@@ -462,7 +509,7 @@ function SetCursor(int x, int y)
 /** sendtext and append newline */
 function SendLine(optional coerce string line)
 {
-	SendText(line$Chr(13)$chr(10));
+	SendText(line$Chr(C_CR)$chr(C_NL));
 }
 
 /**
@@ -499,7 +546,7 @@ function int ProcTelnetProtocol( int pos, int Count, byte B[255] )
 	return length;
 }
 
-/** */
+/** telnet subnegotiation (SB) */
 function int ProcTelnetSubNegotiation( int pos, int Count, byte B[255] )
 {
 	local int length;
@@ -561,9 +608,68 @@ function Bell()
 	SendText(Chr(7));
 }
 
+/** clear and reset the current line */
 function ClearResetLine()
 {
 	SendText(Chr(C_ESC)$"[1G"$Chr(C_ESC)$"[2K");
+}
+
+/**
+	add color coding to a string. this is pretty slow, it's better to use hardcoded
+	strings when you don't need to set it dynamically.
+*/
+static function string Format(string line, ConsoleFont font)
+{
+	local string code;
+	if (font.Font != EC_None)
+	{
+		if (font.Font == EC_Default)
+		{
+			if (font.Underline == TS_True) code = "38";
+			else if (font.Underline == TS_False) code = "39";
+		}
+		else code = string(font.Font+29);
+	}
+	if (font.Background != EC_None)
+	{
+		if (code != "") code $= ";";
+		code $= string(font.Background+39);
+	}
+	if (font.Intensity > 0)
+	{
+		if (code != "") code $= ";";
+		switch (font.Intensity)
+		{
+			case 1: code $= "22"; break;
+			case 2: code $= "2"; break;
+			case 3: code $= "1"; break;
+		}
+	}
+	if (font.Underline != TS_Unset)
+	{
+		if (code != "") code $= ";";
+		if (font.Underline == TS_True) code $= "4";
+		else code $= "24";
+	}
+	if (font.Blink != TS_Unset)
+	{
+		if (code != "") code $= ";";
+		if (font.Blink == TS_True) code $= "5";
+		else code $= "25";
+	}
+	if (font.Reverse != TS_Unset)
+	{
+		if (code != "") code $= ";";
+		if (font.Reverse == TS_True) code $= "7";
+		else code $= "27";
+	}
+	if (font.Reset)
+	{
+		if (code != "") code $= ";";
+		code $= "0";
+	}
+	if (font.NoReset) return Chr(C_ESC)$"["$code$"m"$line;
+	else return Chr(C_ESC)$"["$code$"m"$line$Chr(C_ESC)$"[0m";
 }
 
 /** add the last command to the command history */
@@ -737,7 +843,11 @@ state logged_in
 			return;
 		}
 		AddCommandHistory(input);
-		PagerLineCount = 0;
+		if (bEnablePager)
+		{
+			PagerLineCount = 0;
+			PagerBuffer.length = 0;
+		}
 		if (!Interface.Gateway.ExecCommand(Self, cmd)) outputError(repl(msgUnknownCommand, "%command%", cmd[0]));
 		if (!IsInState('paged')) SendPrompt();
 	}
@@ -764,6 +874,7 @@ begin:
 */
 state paged
 {
+	/** pager uses only a few keys */
 	function PagerReceiveInput(int Count, byte B[255])
 	{
 		local int i;
@@ -789,6 +900,7 @@ state paged
 		}
 	}
 
+	/** OnCursorKey delegate for the pager mode */
 	function PagerCursor(ECursorKey key)
 	{
 		switch (key)
@@ -808,6 +920,7 @@ state paged
 		}
 	}
 
+	/** scroll the pager a couple of lines */
 	function PagerScroll(int lines)
 	{
 		local int i, OldOffset;
@@ -841,9 +954,14 @@ state paged
 		}
 	}
 
+	/** show the pager status line at the current cursor location */
 	function PagerStatus(int position)
 	{
-		SendText(Chr(C_ESC)$"[7m"$msgPagerMore@(PagerOffset+1)@"-"@(position+1)@"("$((position+1)*100/PagerBuffer.Length)$"%)"$Chr(C_ESC)$"[0m"$Chr(C_ESC)$"[K");
+		local string tmp;
+		tmp = repl(msgPagerMore, "%begin%", string(PagerOffset+1));
+		tmp = repl(tmp, "%end%", string(position+1));
+		tmp = repl(tmp, "%percent%", string((position+1)*100/PagerBuffer.Length));
+		SendText(Chr(C_ESC)$"[7m"$tmp$Chr(C_ESC)$"[0m"$Chr(C_ESC)$"[K");
 	}
 
 begin:
@@ -857,6 +975,10 @@ begin:
 	PagerStatus(WindowSize[1]-2);
 }
 
+/**
+	send data to the client, if the pager is enabled it will automatically page
+	the data when there's more data than can fit on the screen
+*/
 function output(string data)
 {
 	if (!bEnablePager) SendLine(data);
@@ -874,6 +996,9 @@ function output(string data)
 	}
 }
 
+/**
+	send an error
+*/
 function outputError(string errormsg)
 {
 	SendLine(Chr(C_ESC)$"[1;31m"$errormsg$Chr(C_ESC)$"[0m");
@@ -881,7 +1006,7 @@ function outputError(string errormsg)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.9 2004/01/02 21:43:56 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.10 2004/01/03 10:44:06 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0
@@ -894,5 +1019,5 @@ defaultproperties
 	msgLoginFailed="Login failed!"
 	msgTooManuLogins="Too many login tries, goodbye!"
 	msgUnknownCommand="Unknown command: %command%"
-	msgPagerMore="pager:";
+	msgPagerMore="pager: %begin% - %end% (%percent%%)";
 }
