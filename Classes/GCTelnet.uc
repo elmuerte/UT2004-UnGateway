@@ -10,7 +10,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCTelnet.uc,v 1.14 2004/04/07 08:39:37 elmuerte Exp $	-->
+	<!-- $Id: GCTelnet.uc,v 1.15 2004/04/07 21:16:48 elmuerte Exp $	-->
 *******************************************************************************/
 class GCTelnet extends UnGatewayClient;
 
@@ -801,6 +801,7 @@ state login
 			if (Interface.gateway.login(self, sUsername, sPassword, interface.ident))
 			{
 				IssueMessage();
+				PlayerController.SetName(sUsername);
 				GotoState('logged_in');
 			}
 			else {
@@ -1036,7 +1037,7 @@ function outputError(string errormsg)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.14 2004/04/07 08:39:37 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.15 2004/04/07 21:16:48 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0

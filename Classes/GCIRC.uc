@@ -8,7 +8,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCIRC.uc,v 1.13 2004/04/06 19:12:00 elmuerte Exp $ -->
+	<!-- $Id: GCIRC.uc,v 1.14 2004/04/07 21:16:48 elmuerte Exp $ -->
 *******************************************************************************/
 class GCIRC extends UnGatewayClient;
 
@@ -139,6 +139,7 @@ auto state Login
 			}
 			ClientID = GIIRCd(Interface).GetIRCUser(self);
 			GIIRCd(Interface).IRCUsers[ClientID].Realname = sRealname;
+			PlayerController.SetName(sUsername);
 			GotoState('loggedin');
 		}
 	}
@@ -623,7 +624,7 @@ function ircExecLIST(optional string mask)
 defaultproperties
 {
 	ClientID=-1
-	CVSversion="$Id: GCIRC.uc,v 1.13 2004/04/06 19:12:00 elmuerte Exp $"
+	CVSversion="$Id: GCIRC.uc,v 1.14 2004/04/07 21:16:48 elmuerte Exp $"
 	bShowMotd=true
 	MaxChannels=2
 	bAllowCreateChannel=false

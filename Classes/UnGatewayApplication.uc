@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UnGatewayApplication.uc,v 1.6 2004/04/07 16:37:39 elmuerte Exp $ -->
+	<!-- $Id: UnGatewayApplication.uc,v 1.7 2004/04/07 21:16:48 elmuerte Exp $ -->
 *******************************************************************************/
 class UnGatewayApplication extends Object within GatewayDaemon abstract;
 
@@ -64,7 +64,55 @@ function string GetHelpFor(string Command)
 	return "";
 }
 
+/** pad the string until it's long engouh */
+function string PadLeft(coerce string str, int length, optional string delim)
+{
+	if (delim == "") delim = " ";
+	while (Len(str) < length) str $= delim;
+	return str;
+}
+
+/** pad the string until it's long engouh */
+function string PadRight(coerce string str, int length, optional string delim)
+{
+	if (delim == "") delim = " ";
+	while (Len(str) < length) str = delim$str;
+	return str;
+}
+
+/** pad the string so the content is in the center */
+function string PadCenter(coerce string str, int length, optional string delim)
+{
+	if (delim == "") delim = " ";
+	while (Len(str) < length)
+	{
+		str $= delim;
+		if (Len(str) < length) str = delim$str;
+	}
+	return str;
+}
+
+/** evaluates expr and return the correct string */
+function string iif(bool expr, coerce string sthen, optional coerce string selse)
+{
+	if (expr) return sthen;
+	return selse;
+}
+
+/** sets val to the integer representation of in and returns true if in had a integer */
+function bool intval(string in, out int val)
+{
+	local int nval;
+	nval = int(in);
+	if (in == string(nval))
+	{
+		val = nval;
+		return true;
+	}
+	return false;
+}
+
 defaultproperties
 {
-	innerCVSversion="$Id: UnGatewayApplication.uc,v 1.6 2004/04/07 16:37:39 elmuerte Exp $"
+	innerCVSversion="$Id: UnGatewayApplication.uc,v 1.7 2004/04/07 21:16:48 elmuerte Exp $"
 }
