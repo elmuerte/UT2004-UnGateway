@@ -7,10 +7,10 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: TelnetCommandHistory.uc,v 1.1 2004/04/15 20:41:40 elmuerte Exp $ -->
+	<!-- $Id: TelnetCommandHistory.uc,v 1.2 2004/04/16 10:38:22 elmuerte Exp $ -->
 *******************************************************************************/
 
-class TelnetCommandHistory extends Object config(UnGateway) perobjectconfig;
+class TelnetCommandHistory extends Object config(UnGateway) perobjectconfig parseconfig;
 
 var config array<string> History;
 

@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GatewayDaemon.uc,v 1.9 2004/04/14 13:39:18 elmuerte Exp $ -->
+	<!-- $Id: GatewayDaemon.uc,v 1.10 2004/04/16 10:38:22 elmuerte Exp $ -->
 *******************************************************************************/
 class GatewayDaemon extends Info config;
 
@@ -69,6 +69,10 @@ var string CreationTime;
 var string hostname, hostaddress, computername;
 
 var localized string msgUnauthorized;
+
+var localized string PICat;
+var localized string PILabel[5];
+var localized string PIDescription[5];
 
 /** Spawn all classes*/
 event PreBeginPlay()
@@ -224,6 +228,29 @@ function bool CanClose(UnGatewayClient client)
 	return true;
 }
 
+static function FillPlayInfo(PlayInfo PlayInfo)
+{
+	super.FillPlayInfo(PlayInfo);
+	PlayInfo.AddSetting(default.PICat, "Verbose", default.PILabel[0], 255, 255, "Text", "3;0:255",,,true);
+	PlayInfo.AddSetting(default.PICat, "AuthClass", default.PILabel[1], 255, 1, "Text",,,,true);
+	PlayInfo.AddSetting(default.PICat, "InterfaceClasses", default.PILabel[2], 255, 1, "Text",,,,true);
+	PlayInfo.AddSetting(default.PICat, "ApplicationClasses", default.PILabel[3], 255, 1, "Text",,,,true);
+	PlayInfo.AddSetting(default.PICat, "CmdAliases", default.PILabel[4], 255, 1, "Text",,,,true);
+}
+
+static event string GetDescriptionText(string PropName)
+{
+	switch (PropName)
+	{
+		case "Verbose":				return default.PIDescription[0];
+		case "AuthClass":			return default.PIDescription[1];
+		case "InterfaceClasses":	return default.PIDescription[2];
+		case "ApplicationClasses":	return default.PIDescription[3];
+		case "CmdAliases":			return default.PIDescription[4];
+	}
+	return "";
+}
+
 defaultproperties
 {
 	Verbose=0
@@ -234,7 +261,19 @@ defaultproperties
 	LOG_DEBUG=128
 
 	Ident="UnGateway/100"
-	CVSversion="$Id: GatewayDaemon.uc,v 1.9 2004/04/14 13:39:18 elmuerte Exp $"
+	CVSversion="$Id: GatewayDaemon.uc,v 1.10 2004/04/16 10:38:22 elmuerte Exp $"
 	AuthClass="UnGateway.GAuthSystem"
 	msgUnauthorized="You are not authorized to use this command"
+
+	PICat="UnGateway"
+	PILabel[0]="Log verbosity"
+	PIDescription[0]="Controls the log verbosity, the bits define which log messages are logged. Error = 1; Warning = 2; Information = 4; event = 8; Debug = 128. Unless you are developing addons for UnGateway you should not use anything except Error and Warning."
+	PILabel[1]="Authorization class"
+	PIDescription[1]="The class to use for authentication and authorization."
+	PILabel[2]="Interfaces"
+	PIDescription[2]="The interfaces classes to load on start up."
+	PILabel[3]="Applications"
+	PIDescription[3]="The application classes to load on start up."
+	PILabel[4]="Command alias"
+	PIDescription[4]="Aliases for commands. The following replacements can be used: %1, %2, %3,..., %@ (for all) for arguments passed to it"
 }

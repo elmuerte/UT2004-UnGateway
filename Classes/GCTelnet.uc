@@ -10,7 +10,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCTelnet.uc,v 1.23 2004/04/16 07:17:18 elmuerte Exp $	-->
+	<!-- $Id: GCTelnet.uc,v 1.24 2004/04/16 10:38:22 elmuerte Exp $	-->
 *******************************************************************************/
 /*
 	TODO:
@@ -228,6 +228,8 @@ struct ConsoleFont
 	/** plain reset */
 	var bool Reset;
 };
+
+var localized string PICat, PILabel[11], PIDescription[11], PIData[2];
 
 /** called from defReceiveInput to handle escape codes */
 delegate int OnEscapeCode(int pos, int Count, byte B[255])
@@ -1358,9 +1360,45 @@ function SendChatPrompt(optional bool bNoBuffer)
 	}
 }
 
+static function FillPlayInfo(PlayInfo PlayInfo)
+{
+	super.FillPlayInfo(PlayInfo);
+	PlayInfo.AddSetting(default.PICat, "CommandPrompt", default.PILabel[0], 128, 1, "Text");
+	PlayInfo.AddSetting(default.PICat, "bShowMotd", default.PILabel[1], 128, 1, "Check");
+	PlayInfo.AddSetting(default.PICat, "MOTD", default.PILabel[2], 128, 1, "Text");
+	PlayInfo.AddSetting(default.PICat, "iMaxLogin", default.PILabel[3], 196, 1, "Text", "3;1:255");
+	PlayInfo.AddSetting(default.PICat, "fDelayInitial", default.PILabel[4], 196, 1, "Text", "10;0:65535");
+	PlayInfo.AddSetting(default.PICat, "fDelayWrongPassword", default.PILabel[5], 196, 1, "Text", "10;0:65535");
+	PlayInfo.AddSetting(default.PICat, "bDisableAuth", default.PILabel[6], 255, 255, "Check");
+	PlayInfo.AddSetting(default.PICat, "bEnablePager", default.PILabel[7], 64, 1, "Check");
+	PlayInfo.AddSetting(default.PICat, "bSaveHistory", default.PILabel[8], 64, 1, "Check");
+	PlayInfo.AddSetting(default.PICat, "CommandHistoryClass", default.PILabel[9], 128, 1, "Text");
+	PlayInfo.AddSetting(default.PICat, "ChatMode", default.PILabel[10], 128, 1, "Select", default.PIData[0]);
+	default.AcceptClass.static.FillPlayInfo(PlayInfo);
+}
+
+static event string GetDescriptionText(string PropName)
+{
+	switch (PropName)
+	{
+		case "CommandPrompt":		return default.PIDescription[0];
+		case "bShowMotd":			return default.PIDescription[1];
+		case "MOTD":				return default.PIDescription[2];
+		case "iMaxLogin":			return default.PIDescription[3];
+		case "fDelayInitial":		return default.PIDescription[4];
+		case "fDelayWrongPassword":	return default.PIDescription[5];
+		case "bDisableAuth":		return default.PIDescription[6];
+		case "bEnablePager":		return default.PIDescription[7];
+		case "bSaveHistory":		return default.PIDescription[8];
+		case "CommandHistoryClass":	return default.PIDescription[9];
+		case "ChatMode":			return default.PIDescription[10];
+	}
+	return "";
+}
+
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.23 2004/04/16 07:17:18 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.24 2004/04/16 10:38:22 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0
@@ -1378,6 +1416,31 @@ defaultproperties
 	msgUnknownCommand="Unknown command: %command%"
 	msgPagerMore="pager: %begin% - %end% (%percent%%)"
 	msgFullChatMode="-- You are now in chat mode, press Ctrl+D or /quit to leave chat mode --"
+
+	PICat="Telnet"
+	PILabel[0]="Command prompt"
+	PIDescription[0]="The command prompt format. The following replacements can be used: %username%, %computername%, %hostname%, %hostaddress%, %clientaddress%"
+	PILabel[1]="Show MOTD"
+	PIDescription[1]="Show the message of the day"
+	PILabel[2]="MOTD"
+	PIDescription[2]="The Messsage Of The Day"
+	PILabel[3]="Maximum login tries"
+	PIDescription[3]="The maximum login tries before the connection is closed"
+	PILabel[4]="Initial login delay"
+	PIDescription[4]="the number of seconds to wait before the user can try to log in"
+	PILabel[5]="Invalid login delay"
+	PIDescription[5]="Number of seconds to wait before a user can try to log in again. this prevents brute forcing a password."
+	PILabel[6]="Disable authentication"
+	PIDescription[6]="Disable authentication completely. You should not do this, it will allow everybody to login without a username and password."
+	PILabel[7]="Enable pager"
+	PIDescription[7]="The pager is the automatic scroll feature that allows users to scroll up or down when a command output is more than could fit on the screen."
+	PILabel[8]="Save history"
+	PIDescription[8]="Save each user's command history to the UnGateway.ini file. This will add some useless overhead during login and logout."
+	PILabel[9]="History class"
+	PIDescription[9]="The class to spawn for saving\loading the command history"
+	PILabel[10]="Chat mode"
+	PIDescription[10]="The intial chat mode. With full chat mode everything the user enters will be a chat command. With partial chat only part of the screen is reserved for messages and only when the user uses the say command it will be considerd as a chat message."
+	PIData[0]="CM_Disabled;Disabled;CM_Full;Full chat mode;CM_Partial;Partial chat mode"
 
 	bShowMotd=true
 	MOTD[0]=""

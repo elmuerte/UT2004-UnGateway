@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UnGatewayInterface.uc,v 1.5 2004/04/06 19:12:00 elmuerte Exp $ -->
+	<!-- $Id: UnGatewayInterface.uc,v 1.6 2004/04/16 10:38:22 elmuerte Exp $ -->
 *******************************************************************************/
 class UnGatewayInterface extends TcpLink abstract config;
 
@@ -35,6 +35,8 @@ var(Config) config int iMaxClients;
 var const string Ident;
 /** CVS Id string */
 var const string CVSversion;
+
+var localized string PICat, PILabel[3], PIDescription[3];
 
 /** Called after the object has been created */
 function Create(GatewayDaemon gwd)
@@ -114,6 +116,26 @@ event LostChild(Actor Other)
 /** should be overwritten */
 function LostClient(UnGatewayClient client);
 
+static function FillPlayInfo(PlayInfo PlayInfo)
+{
+	super.FillPlayInfo(PlayInfo);
+	PlayInfo.AddSetting(default.PICat, "iListenPort", default.PILabel[0], 255, 1, "Text", "5;1:65535");
+	PlayInfo.AddSetting(default.PICat, "bUseNextAvailable", default.PILabel[1], 1, 1, "Check");
+	PlayInfo.AddSetting(default.PICat, "iMaxClients", default.PILabel[2], 255, 1, "Text", "3;1:255");
+	default.AcceptClass.static.FillPlayInfo(PlayInfo);
+}
+
+static event string GetDescriptionText(string PropName)
+{
+	switch (PropName)
+	{
+		case "iListenPort":			return default.PIDescription[0];
+		case "bUseNextAvailable":	return default.PIDescription[1];
+		case "iMaxClients":			return default.PIDescription[2];
+	}
+	return "";
+}
+
 defaultproperties
 {
 	iListenPort=0
@@ -122,5 +144,12 @@ defaultproperties
 	RequestedReceiveMode=RMODE_Event
 	RequestedLinkMode=MODE_Line
 	iMaxClients=10
-	CVSversion="$Id: UnGatewayInterface.uc,v 1.5 2004/04/06 19:12:00 elmuerte Exp $"
+	CVSversion="$Id: UnGatewayInterface.uc,v 1.6 2004/04/16 10:38:22 elmuerte Exp $"
+
+	PILabel[0]="Listen port"
+	PIDescription[0]="The port this interface will listen on. It should be an unused port."
+	PILabel[1]="Use next available"
+	PIDescription[1]="If the current listen port is in use, pick the next available port."
+	PILabel[2]="Maximum clients"
+	PIDescription[2]="The maximum number of clients that may connect to this interface. if the maximum is reached new clients will be rejected."
 }

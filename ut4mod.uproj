@@ -1,0 +1,40 @@
+d:\dev\ut2004\ut2-code
+0.8
+[Group]
+name=UnGateway Base
+System\UnGateway.u
+System\UnGateway.int
+[Group]
+name=UT2004 Applications
+System\UGUT2004.u
+System\UGUT2004.int
+[INI]
+name=UT2004.ini
+Engine.GameEngine,ServerActors,UnGateway.GatewayDaemon,TRUE
+UnGateway.GatewayDaemon,ApplicationClasses,UnGateway.GAppDefault,TRUE
+UnGateway.GatewayDaemon,ApplicationClasses,UnGateway.GAppCron,TRUE
+UnGateway.GatewayDaemon,InterfaceClasses,UnGateway.GITelnetd,TRUE
+group=UnGateway Base
+[INI]
+name=UT2004.ini
+UnGateway.GatewayDaemon,ApplicationClasses,UGUT2004.GAppSystem,TRUE
+UnGateway.GatewayDaemon,ApplicationClasses,UGUT2004.GAppSettings,TRUE
+group=UT2004 Applications
+[Requirement]
+product=UT2004
+version=3186
+developer=Epic Games, Inc.
+productURL=http://www.unrealtournament2003.com/
+versionURL=http://unreal.epicgames.com/
+developerURL=http://www.epicgames.com/
+[Product]
+product=UnGateway
+version=100Beta
+developer=Michiel "El Muerte" Hendriks
+productURL=http://ungateway.elmuerte.com
+versionURL=http://ungateway.elmuerte.com
+developerURL=http://ut2004.elmuerte.com/About
+title=UnGateway Setup
+cleanup=True
+license=UnGateway LICENSE.int
+archive=UnGateway.ut2mod

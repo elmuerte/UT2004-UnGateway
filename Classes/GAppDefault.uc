@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GAppDefault.uc,v 1.5 2004/04/15 07:56:54 elmuerte Exp $ -->
+	<!-- $Id: GAppDefault.uc,v 1.6 2004/04/16 10:38:22 elmuerte Exp $ -->
 *******************************************************************************/
 class GAppDefault extends UnGatewayApplication;
 
@@ -147,14 +147,14 @@ function execList(UnGatewayClient client, array<string> cmd)
 
 defaultproperties
 {
-	innerCVSversion="$Id: GAppDefault.uc,v 1.5 2004/04/15 07:56:54 elmuerte Exp $"
+	innerCVSversion="$Id: GAppDefault.uc,v 1.6 2004/04/16 10:38:22 elmuerte Exp $"
 	HelpNewline="ÿ"
 	Commands[0]=(Name="help")
 	Commands[1]=(Name="list")
 	Commands[2]=(Name="quit")
 
 	CommandHelp[0]="Show help about commandsÿUsage: help <command>"
-	CommandHelp[1]="Show various lists.\ncmd	show registered commandsÿapp	show loaded applicationsÿif	show loaded interfacesÿclient	show connected clients"
+	CommandHelp[1]="Show various lists.ÿcmd	show registered commandsÿapp	show loaded applicationsÿif	show loaded interfacesÿclient	show connected clients"
 	CommandHelp[2]="Logout"
 
 	msgHelpUsage="Usage: help <command>"
