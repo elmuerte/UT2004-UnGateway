@@ -3,7 +3,7 @@
 	Telnet client, spawned from GITelnetd
 	Note: windows telnet client should use ANSI not VT100
 	RFC: 318, 513, 764, 854, 855, 857, 858, 859, 884, 930, 1073, 1091, 1116, 1572
-	$Id: GCTelnet.uc,v 1.8 2004/01/02 20:54:01 elmuerte Exp $
+	$Id: GCTelnet.uc,v 1.9 2004/01/02 21:43:56 elmuerte Exp $
 */
 class GCTelnet extends UnGatewayClient;
 
@@ -797,9 +797,9 @@ state paged
 								break;
 			case ECK_Down:		PagerScroll(1);
 								break;
-			case ECK_PageUp:	PagerScroll(-WindowSize[1]);
+			case ECK_PageUp:	PagerScroll(-(WindowSize[1]-1));
 								break;
-			case ECK_PageDown:	PagerScroll(WindowSize[1]);
+			case ECK_PageDown:	PagerScroll(WindowSize[1]-1);
 								break;
 			case ECK_Home:		PagerScroll(-PagerBuffer.Length);
 								break;
@@ -810,26 +810,40 @@ state paged
 
 	function PagerScroll(int lines)
 	{
-		local int i;
-		i = PagerOffset;
+		local int i, OldOffset;
+		OldOffset = PagerOffset;
 		PagerOffset = clamp(PagerOffset+lines, 0, PagerBuffer.Length-WindowSize[1]+1);
-		if (i == PagerOffset)
+		lines = clamp(PagerOffset-OldOffset, -(WindowSize[1]-1), WindowSize[1]-1);
+		if (lines == 0)
 		{
 			Bell();
 			return;
 		}
-		ClearResetLine();
-		for (i = PagerOffset; i < PagerBuffer.Length; i++)
+		else if (lines > 0)
 		{
-			SendLine(PagerBuffer[i]);
-			if (i-PagerOffset >= (WindowSize[1]-2)) break;
+			ClearResetLine();
+			for (i = WindowSize[1]+PagerOffset-lines-1; i < WindowSize[1]+PagerOffset-1; i++)
+			{
+				SendLine(PagerBuffer[i]);
+			}
+			PagerStatus(i-1);
 		}
-		PagerStatus(i);
+		else if (lines < 0)
+		{
+			lines = lines*-1;
+			SendText(chr(27)$"[1;1H"$chr(27)$"["$string(lines)$"L");
+			for (i = PagerOffset; i < PagerOffset+lines; i++)
+			{
+				SendLine(PagerBuffer[i]);
+			}
+			SendText(chr(27)$"["$(WindowSize[1])$";1H");
+			PagerStatus(PagerOffset+WindowSize[1]-2);
+		}
 	}
 
 	function PagerStatus(int position)
 	{
-		SendText(Chr(C_ESC)$"[7m"$msgPagerMore@(PagerOffset+1)@"-"@(position+1)@"("$((position+1)*100/PagerBuffer.Length)$"%)"$Chr(C_ESC)$"[0m");
+		SendText(Chr(C_ESC)$"[7m"$msgPagerMore@(PagerOffset+1)@"-"@(position+1)@"("$((position+1)*100/PagerBuffer.Length)$"%)"$Chr(C_ESC)$"[0m"$Chr(C_ESC)$"[K");
 	}
 
 begin:
@@ -867,7 +881,7 @@ function outputError(string errormsg)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.8 2004/01/02 20:54:01 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.9 2004/01/02 21:43:56 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0
