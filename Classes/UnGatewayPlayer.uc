@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UnGatewayPlayer.uc,v 1.4 2004/04/15 14:41:32 elmuerte Exp $ -->
+	<!-- $Id: UnGatewayPlayer.uc,v 1.5 2004/05/08 21:49:33 elmuerte Exp $ -->
 *******************************************************************************/
 class UnGatewayPlayer extends MessagingSpectator;
 
@@ -49,7 +49,7 @@ function SendFormattedMessage(PlayerReplicationInfo PRI, coerce string S, option
 	{
 		pname = PRI.PlayerName;
 	}
-	client.outputChat(pname, S, Type);
+	client.outputChat(pname, S, Type, PRI);
 }
 
 defaultproperties

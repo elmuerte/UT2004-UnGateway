@@ -10,7 +10,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCTelnet.uc,v 1.26 2004/04/26 21:15:24 elmuerte Exp $	-->
+	<!-- $Id: GCTelnet.uc,v 1.27 2004/05/08 21:49:32 elmuerte Exp $	-->
 *******************************************************************************/
 /*
 	TODO:
@@ -1321,7 +1321,7 @@ function outputError(string errormsg, optional string ident, optional bool bDont
 	SendLine(Chr(C_ESC)$"[1;31m"$errormsg$Chr(C_ESC)$"[0m");
 }
 
-function outputChat(coerce string pname, coerce string message, optional name Type)
+function outputChat(coerce string pname, coerce string message, optional name Type, optional PlayerReplicationInfo PC)
 {
 	if (ChatMode == CM_Disabled) return;
 	if (ChatMode == CM_Full)
@@ -1431,7 +1431,7 @@ static event string GetDescriptionText(string PropName)
 
 defaultproperties
 {
-	CVSversion="$Id: GCTelnet.uc,v 1.26 2004/04/26 21:15:24 elmuerte Exp $"
+	CVSversion="$Id: GCTelnet.uc,v 1.27 2004/05/08 21:49:32 elmuerte Exp $"
 	CommandPrompt="%username%@%computername%:~$ "
 	iMaxLogin=3
 	fDelayInitial=0.0

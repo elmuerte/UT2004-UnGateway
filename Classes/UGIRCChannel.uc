@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UGIRCChannel.uc,v 1.1 2004/05/08 17:43:39 elmuerte Exp $ -->
+	<!-- $Id: UGIRCChannel.uc,v 1.2 2004/05/08 21:49:33 elmuerte Exp $ -->
 *******************************************************************************/
 class UGIRCChannel extends Object;
 
@@ -142,6 +142,19 @@ function PartUser(int userid, optional bool bDontAnnounce)
 			return;
 		}
 	}
+}
+
+/** add a user to this channel */
+function JoinUser(int userid, optional bool bDontAnnounce)
+{
+	local int j;
+	for (j = 0; j < users.length; j++)
+	{
+		if (users[j].uid == userid) return;
+	}
+	users.length = j+1;
+	users[j].uid = userid;
+	BroadcastMessage(":"$IRCd.IRCUsers[userid].Nick$"!"$IRCd.IRCUsers[userid].Userhost@"JOIN"@ChannelName);
 }
 
 /** check if a channel name is valid */

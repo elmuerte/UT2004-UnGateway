@@ -8,7 +8,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GCIRC.uc,v 1.16 2004/05/08 17:43:39 elmuerte Exp $ -->
+	<!-- $Id: GCIRC.uc,v 1.17 2004/05/08 21:49:32 elmuerte Exp $ -->
 *******************************************************************************/
 class GCIRC extends UnGatewayClient;
 
@@ -118,6 +118,7 @@ auto state Login
 				{
 					SendIRC(":Password incorrect", "464"); // ERR_PASSWDMISMATCH
 			    	Close();
+			    	return;
 				}
 			}
 			ClientID = GIIRCd(Interface).GetIRCUser(self);
@@ -557,14 +558,14 @@ function ircExecPRIVMSG(string receipt, string text)
 		else {
 			if (receipt ~= GIIRCd(Interface).GameChannel)
 			{
-				AdvSplit("say"@text, " ", cmd);
+				AdvSplit("say"@Mid(text, 1), " ", cmd);
 				Interface.gateway.ExecCommand(self, cmd);
 			}
 			else if (receipt ~= GIIRCd(Interface).AdminChannel)
 			{
-				if (Left(text, 1) == ".") // command
+				if (Mid(text, 1, 1) == ".") // command
 				{
-					AdvSplit(Mid(text, 1), " ", cmd, "\"");
+					AdvSplit(Mid(text, 2), " ", cmd, "\"");
 					Interface.gateway.ExecCommand(self, cmd);
 				}
 				// adminchat
@@ -646,20 +647,31 @@ function ircExecLIST(optional string mask)
 /** return of a function call, ident is used to ident the data, always output this to the admin channel */
 function output(coerce string data, optional string ident, optional bool bDontWrapFirst)
 {
-	SendText(":"$sUsername$"!"$sUserhost@"PRIVMSG"@GIIRCd(Interface).AdminChannel@data);
+	SendText(":-output- PRIVMSG"@GIIRCd(Interface).AdminChannel@data);
 }
 
 /** return of a function call, ident is used to ident the data */
 function outputError(string errormsg, optional string ident, optional bool bDontWrapFirst)
 {
+	SendText(":-error- PRIVMSG"@GIIRCd(Interface).AdminChannel@errormsg);
 }
 
 /** will be called for chat messages, always output this to the game channel */
-function outputChat(coerce string pname, coerce string message, optional name Type)
+function outputChat(coerce string pname, coerce string message, optional name Type, optional PlayerReplicationInfo PC)
 {
 	local int id;
+	log(pname@sUsername);
 	if (pname ~= sUsername) return;
 	id = GIIRCd(Interface).GetNick(pname);
+	if (id < 0)
+	{
+		id = GIIRCd(Interface).GetSystemIRCUser(PlayerController(PC.Owner));
+		if (id < 0)
+		{
+			SendText(":"$pname$"!~@unknown PRIVMSG"@GIIRCd(Interface).GameChannel@message);
+			return;
+		}
+	}
 	SendText(":"$GIIRCd(Interface).IRCUsers[id].Nick$"!"$GIIRCd(Interface).IRCUsers[id].Userhost@"PRIVMSG"@GIIRCd(Interface).GameChannel@message);
 }
 
@@ -667,7 +679,7 @@ function outputChat(coerce string pname, coerce string message, optional name Ty
 defaultproperties
 {
 	ClientID=-1
-	CVSversion="$Id: GCIRC.uc,v 1.16 2004/05/08 17:43:39 elmuerte Exp $"
+	CVSversion="$Id: GCIRC.uc,v 1.17 2004/05/08 21:49:32 elmuerte Exp $"
 	bShowMotd=true
 	MaxChannels=2
 	bAllowCreateChannel=false

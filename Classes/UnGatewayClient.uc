@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: UnGatewayClient.uc,v 1.18 2004/04/26 21:15:24 elmuerte Exp $ -->
+	<!-- $Id: UnGatewayClient.uc,v 1.19 2004/05/08 21:49:33 elmuerte Exp $ -->
 *******************************************************************************/
 class UnGatewayClient extends TCPLink abstract config;
 
@@ -136,7 +136,7 @@ function output(coerce string data, optional string ident, optional bool bDontWr
 function outputError(string errormsg, optional string ident, optional bool bDontWrapFirst);
 
 /** will be called for chat messages */
-function outputChat(coerce string pname, coerce string message, optional name Type);
+function outputChat(coerce string pname, coerce string message, optional name Type, optional PlayerReplicationInfo PC);
 
 /** request input from the client, called by an UnGatewayApplication, this can be used to get passwords */
 function requestInput(UnGatewayApplication app, optional coerce string Prompt, optional bool bNoEcho)
@@ -197,5 +197,5 @@ function int AdvSplit(string input, string delim, out array<string> elm, optiona
 defaultproperties
 {
 	PlayerControllerClass=class'UnGateway.UnGatewayPlayer'
-	CVSversion="$Id: UnGatewayClient.uc,v 1.18 2004/04/26 21:15:24 elmuerte Exp $"
+	CVSversion="$Id: UnGatewayClient.uc,v 1.19 2004/05/08 21:49:33 elmuerte Exp $"
 }

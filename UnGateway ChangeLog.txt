@@ -1,6 +1,6 @@
 Saturday, May 08, 2004
 - IRC: /oper implementation
-- IRC:
+- IRC: admin channel and game channel have been implemented as they should
 
 Saturday, May 01, 2004
 - Fixed bug in the auth system

@@ -7,8 +7,13 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: GIIRCd.uc,v 1.14 2004/05/08 17:43:39 elmuerte Exp $ -->
+	<!-- $Id: GIIRCd.uc,v 1.15 2004/05/08 21:49:32 elmuerte Exp $ -->
 *******************************************************************************/
+/*
+	TODO:
+	- manage new imgateway players via linked list
+	- detect player parting (NotifyLogout in GameInfo)
+*/
 class GIIRCd extends UnGatewayInterface;
 
 /** we need to keep a record of clients here */
@@ -117,6 +122,7 @@ function bool CheckNickName(GCIRC client, string RequestedName)
 	}
 	if (client.ClientID >= 0) IRCUsers[client.ClientID].Nick = RequestedName;
 	client.sUsername = RequestedName;
+	client.PlayerController.SetName(client.sUsername);
 	return true;
 }
 
@@ -136,6 +142,32 @@ function int GetIRCUser(GCIRC client, optional bool bDontAdd)
 	IRCUsers[IRCUsers.length-1].PC = client.PlayerController;
 	IRCUsers[IRCUsers.length-1].Client = client;
 	IRCUsers[IRCUsers.length-1].Mode = "i"; // always invisible
+	return IRCUsers.length-1;
+}
+
+/** find the IRC user record for a PlayerController */
+function int GetSystemIRCUser(PlayerController PC, optional bool bDontAdd, optional bool bDontAnnounce)
+{
+	local int i;
+	if (PC == none) return -1;
+	for (i = 0; i < IRCUsers.length; i++)
+	{
+		if (IRCUsers[i].PC == PC) return i;
+	}
+	if (bDontAdd) return -1;
+	gateway.Logf("[GetSystemIRCUser] Creating IRC user:"@PC.PlayerReplicationInfo.PlayerName, Name, gateway.LOG_EVENT);
+	IRCUsers.length = IRCUsers.length+1;
+	IRCUsers[IRCUsers.length-1].Nick = PC.PlayerReplicationInfo.PlayerName;
+	IRCUsers[IRCUsers.length-1].Userhost = PC.Name$"@"$PC.GetPlayerNetworkAddress();
+	IRCUsers[IRCUsers.length-1].PC = PC;
+	if (UnGatewayPlayer(PC) != none)
+	{
+		IRCUsers[IRCUsers.length-1].Userhost = UnGatewayPlayer(PC).client.Name$"@"$UnGatewayPlayer(PC).client.ClientAddress;
+	}
+	IRCUsers[IRCUsers.length-1].Client = none;
+	IRCUsers[IRCUsers.length-1].Mode = "i"; // always invisible
+	GetChannel(GameChannel).JoinUser(IRCUsers.length-1);
+	if (PC.PlayerReplicationInfo.bAdmin) GetChannel(GameChannel).SetChannelModeUser(IRCUsers.length-1, "o");
 	return IRCUsers.length-1;
 }
 
@@ -225,10 +257,29 @@ function BroadcastMessageList(coerce string message, array<UGIRCChannel> id, opt
 	}
 }
 
+/** check for new players */
+event Tick(float deltatime)
+{
+	local Controller C;
+	super.Tick(deltatime);
+	C = Level.ControllerList;
+	while (C != none)
+	{
+		if (PlayerController(C) != none)
+		{
+			if (UnGatewayPlayer(C) == none)
+			{
+				GetSystemIRCUser(PlayerController(C));
+			}
+		}
+		C = C.nextController;
+	}
+}
+
 defaultproperties
 {
 	Ident="IRC/100"
-	CVSversion="$Id: GIIRCd.uc,v 1.14 2004/05/08 17:43:39 elmuerte Exp $"
+	CVSversion="$Id: GIIRCd.uc,v 1.15 2004/05/08 21:49:32 elmuerte Exp $"
 	AcceptClass=class'UnGateway.GCIRC'
 	IRCChannelClass=class'UnGateway.UGIRCChannel'
 }
