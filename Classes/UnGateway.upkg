@@ -1,0 +1,13 @@
+[Flags]
+AllowDownload=False
+ServerSideOnly=True
+ClientOptional=False
+Official=False
+
+[Package_Description]
+UnGateway is a system that will allow you to add
+additional interfaces to a unreal server.
+It comes with an interface for a Telnet and IRC server.
+Via these interfaces users can log in and perform certain
+commands, like administration.
+
