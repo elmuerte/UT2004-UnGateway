@@ -7,7 +7,7 @@
 	Copyright 2003, 2004 Michiel "El Muerte" Hendriks							<br />
 	Released under the Open Unreal Mod License									<br />
 	http://wiki.beyondunreal.com/wiki/OpenUnrealModLicense						<br />
-	<!-- $Id: Cron.uc,v 1.2 2004/04/12 13:38:15 elmuerte Exp $ -->
+	<!-- $Id: Cron.uc,v 1.3 2004/04/12 19:32:39 elmuerte Exp $ -->
 *******************************************************************************/
 
 class Cron extends Info config;
@@ -187,7 +187,6 @@ function bool validTimeFormat(ECronType type, string format)
 function Timer()
 {
 	local int i;
-	log(Level.TimeSeconds@int(Level.TimeSeconds / 60.0));
 	for (i = 0; i < Crontab.Length; i++)
 	{
 		if (Crontab[i].bDisabled) continue;
